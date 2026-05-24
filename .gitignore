@@ -1,0 +1,89 @@
+# Virtual environment
+venv/
+env/
+.env
+
+# API keys (never commit)
+*.env
+.env.*
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Data files (PDFs and outputs can be large)
+Data/input_pdfs/
+Data/output_json/
+
+# Qdrant local storage
+qdrant_storage/
+
+# IDE
+.vscode/
+.idea/
+*.code-workspace
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Jupyter (if you use notebooks)
+.ipynb_checkpoints/
+*.ipynb# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# Virtual Environment
+myenv/
+venv/
+.env/
+
+# VS Code
+.vscode/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Qdrant local storage
+qdrant_storage/
+
+# Generated outputs
+Data/output_json/
+
+# Logs
+*.log
+
+# Python packaging
+build/
+dist/
+*.egg-info/
+
+# HuggingFace cache (optional)
+.cache/
+huggingface/
+
+# Environment variables
+.env
+
+# Temporary files
+temp/
+tmp/
+
+# PDF/image test files (optional)
+Data/input_pdfs/*.pdf
+Data/images/
+
+# Model downloads (optional)
+models/

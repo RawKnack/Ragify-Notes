@@ -1,0 +1,19 @@
+# PDF processing
+PyMuPDF
+
+# Image handling
+pillow
+
+# LLM clients
+openai
+google-genai
+anthropic
+
+# Vector database
+qdrant-client
+
+# Config
+python-dotenv
+
+# Validation (optional)
+jsonschema
