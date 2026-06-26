@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Query your handwritten engineering notes using AI-powered hybrid search (semantic + keyword).">
+    <title>Notes RAG — Ask Your Handwritten Notes</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- MathJax Configuration & Loader -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true
+            },
+            options: {
+                ignoreHtmlClass: 'tex2jax_ignore',
+                processHtmlClass: 'tex2jax_process'
+            }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <style>
+        /* ── Reset & Base ──────────────────────────────────────── */
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #111118;
+            --bg-card: rgba(18, 18, 28, 0.7);
+            --bg-glass: rgba(255, 255, 255, 0.04);
+            --border-subtle: rgba(255, 255, 255, 0.06);
+            --border-accent: rgba(99, 102, 241, 0.3);
+            --text-primary: #e8e8f0;
+            --text-secondary: #8b8ba0;
+            --text-muted: #5a5a70;
+            --accent-indigo: #6366f1;
+            --accent-violet: #8b5cf6;
+            --accent-cyan: #22d3ee;
+            --accent-emerald: #34d399;
+            --accent-amber: #fbbf24;
+            --gradient-primary: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%);
+            --gradient-glow: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(139, 92, 246, 0.08) 100%);
+            --shadow-soft: 0 4px 24px rgba(0, 0, 0, 0.3);
+            --shadow-glow: 0 0 40px rgba(99, 102, 241, 0.12);
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 20px;
+            --transition-fast: 0.15s ease;
+            --transition-smooth: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        /* ── Ambient Background ────────────────────────────────── */
+        .ambient-bg {
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .ambient-bg::before {
+            content: '';
+            position: absolute;
+            top: -30%;
+            left: -20%;
+            width: 70%;
+            height: 70%;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.08) 0%, transparent 70%);
+            animation: drift 20s ease-in-out infinite;
+        }
+
+        .ambient-bg::after {
+            content: '';
+            position: absolute;
+            bottom: -20%;
+            right: -15%;
+            width: 60%;
+            height: 60%;
+            background: radial-gradient(circle, rgba(139, 92, 246, 0.06) 0%, transparent 70%);
+            animation: drift 25s ease-in-out infinite reverse;
+        }
+
+        @keyframes drift {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(30px, -20px) scale(1.05); }
+            66% { transform: translate(-20px, 15px) scale(0.95); }
+        }
+
+        /* ── Layout ────────────────────────────────────────────── */
+        .app-container {
+            max-width: 820px;
+            margin: 0 auto;
+            padding: 40px 24px 80px;
+        }
+
+        /* ── Header ────────────────────────────────────────────── */
+        .header {
+            text-align: center;
+            margin-bottom: 48px;
+        }
+
+        .header-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            background: var(--bg-glass);
+            border: 1px solid var(--border-subtle);
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+        }
+
+        .header-badge .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--accent-emerald);
+            animation: pulse-dot 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.8); }
+        }
+
+        h1 {
+            font-size: 42px;
+            font-weight: 700;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.5px;
+            line-height: 1.15;
+            margin-bottom: 12px;
+        }
+
+        .header-subtitle {
+            font-size: 16px;
+            color: var(--text-secondary);
+            font-weight: 400;
+            max-width: 480px;
+            margin: 0 auto;
+        }
+
+        /* ── Search Box ────────────────────────────────────────── */
+        .search-section {
+            margin-bottom: 32px;
+        }
+
+        .search-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-xl);
+            padding: 6px;
+            box-shadow: var(--shadow-soft);
+            transition: border-color var(--transition-smooth), box-shadow var(--transition-smooth);
+        }
+
+        .search-card:focus-within {
+            border-color: var(--border-accent);
+            box-shadow: var(--shadow-soft), var(--shadow-glow);
+        }
+
+        .search-inner {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .search-icon {
+            flex-shrink: 0;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: 8px;
+            color: var(--text-muted);
+            transition: color var(--transition-fast);
+        }
+
+        .search-card:focus-within .search-icon {
+            color: var(--accent-indigo);
+        }
+
+        .search-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            font-family: 'Inter', sans-serif;
+            font-size: 16px;
+            font-weight: 400;
+            color: var(--text-primary);
+            padding: 14px 0;
+            min-width: 0;
+        }
+
+        .search-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .search-btn {
+            flex-shrink: 0;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            background: var(--gradient-primary);
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            border: none;
+            border-radius: var(--radius-lg);
+            cursor: pointer;
+            transition: transform var(--transition-fast), opacity var(--transition-fast);
+            letter-spacing: 0.2px;
+        }
+
+        .search-btn:hover {
+            transform: scale(1.03);
+            opacity: 0.92;
+        }
+
+        .search-btn:active {
+            transform: scale(0.98);
+        }
+
+        .search-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .search-btn svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        /* ── Keyboard Hint ─────────────────────────────────────── */
+        .search-hint {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin-top: 12px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .search-hint kbd {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 6px;
+            background: var(--bg-glass);
+            border: 1px solid var(--border-subtle);
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+
+        /* ── Loading State ─────────────────────────────────────── */
+        .loading-section {
+            display: none;
+            text-align: center;
+            padding: 48px 0;
+        }
+
+        .loading-section.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .spinner-container {
+            position: relative;
+            width: 56px;
+            height: 56px;
+            margin: 0 auto 20px;
+        }
+
+        .spinner-ring {
+            position: absolute;
+            inset: 0;
+            border: 2.5px solid transparent;
+            border-radius: 50%;
+        }
+
+        .spinner-ring:nth-child(1) {
+            border-top-color: var(--accent-indigo);
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        .spinner-ring:nth-child(2) {
+            inset: 6px;
+            border-right-color: var(--accent-violet);
+            animation: spin 1.5s ease-in-out infinite reverse;
+        }
+
+        .spinner-ring:nth-child(3) {
+            inset: 12px;
+            border-bottom-color: var(--accent-cyan);
+            animation: spin 2s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-size: 14px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .loading-step {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 6px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* ── Answer Section ────────────────────────────────────── */
+        .answer-section {
+            display: none;
+        }
+
+        .answer-section.active {
+            display: block;
+            animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* Answer Card */
+        .answer-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-xl);
+            overflow: hidden;
+            box-shadow: var(--shadow-soft);
+        }
+
+        .answer-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 18px 24px;
+            border-bottom: 1px solid var(--border-subtle);
+            background: var(--gradient-glow);
+        }
+
+        .answer-header-icon {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--gradient-primary);
+            border-radius: var(--radius-sm);
+            color: #fff;
+            font-size: 16px;
+        }
+
+        .answer-header-text h2 {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            letter-spacing: 0.2px;
+        }
+
+        .answer-header-text span {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .answer-body {
+            padding: 24px;
+        }
+
+        .answer-content {
+            font-size: 15px;
+            line-height: 1.75;
+            color: var(--text-primary);
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .answer-content p {
+            margin-bottom: 12px;
+        }
+
+        /* ── Sources Section ───────────────────────────────────── */
+        .sources-section {
+            margin-top: 24px;
+        }
+
+        .sources-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .sources-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+
+        .sources-count {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .source-card {
+            background: var(--bg-glass);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 14px 18px;
+            margin-bottom: 8px;
+            transition: border-color var(--transition-fast), background var(--transition-fast);
+            cursor: default;
+        }
+
+        .source-card:hover {
+            border-color: var(--border-accent);
+            background: rgba(99, 102, 241, 0.04);
+        }
+
+        .source-meta {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+        }
+
+        .source-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            font-family: 'JetBrains Mono', monospace;
+            letter-spacing: 0.3px;
+        }
+
+        .badge-page {
+            background: rgba(99, 102, 241, 0.12);
+            color: var(--accent-indigo);
+        }
+
+        .badge-section {
+            background: rgba(139, 92, 246, 0.12);
+            color: var(--accent-violet);
+        }
+
+        .badge-score {
+            background: rgba(34, 211, 238, 0.12);
+            color: var(--accent-cyan);
+        }
+
+        .badge-source {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .badge-dense {
+            background: rgba(99, 102, 241, 0.12);
+            color: var(--accent-indigo);
+        }
+
+        .badge-bm25 {
+            background: rgba(251, 191, 36, 0.12);
+            color: var(--accent-amber);
+        }
+
+        .badge-both {
+            background: rgba(52, 211, 153, 0.12);
+            color: var(--accent-emerald);
+        }
+
+        .source-text {
+            font-size: 13px;
+            line-height: 1.55;
+            color: var(--text-secondary);
+            font-family: 'JetBrains Mono', monospace;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+        }
+
+        /* ── Error State ───────────────────────────────────────── */
+        .error-section {
+            display: none;
+            text-align: center;
+            padding: 32px;
+        }
+
+        .error-section.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .error-card {
+            background: rgba(239, 68, 68, 0.06);
+            border: 1px solid rgba(239, 68, 68, 0.15);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            max-width: 480px;
+            margin: 0 auto;
+        }
+
+        .error-icon {
+            font-size: 28px;
+            margin-bottom: 12px;
+        }
+
+        .error-message {
+            font-size: 14px;
+            color: #f87171;
+            font-weight: 500;
+        }
+
+        .error-detail {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 6px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* ── Responsive ────────────────────────────────────────── */
+        @media (max-width: 640px) {
+            .app-container {
+                padding: 24px 16px 60px;
+            }
+
+            h1 {
+                font-size: 30px;
+            }
+
+            .search-inner {
+                flex-wrap: wrap;
+            }
+
+            .search-btn {
+                width: 100%;
+                justify-content: center;
+                padding: 14px;
+            }
+
+            .search-icon {
+                display: none;
+            }
+
+            .source-meta {
+                gap: 6px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="ambient-bg"></div>
+
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-badge">
+                <span class="dot"></span>
+                Hybrid RAG Engine
+            </div>
+            <h1>Ask Your Notes</h1>
+            <p class="header-subtitle">Search your handwritten engineering notes with AI — powered by semantic + keyword hybrid retrieval.</p>
+        </header>
+
+        <!-- Search -->
+        <section class="search-section">
+            <div class="search-card" id="search-card">
+                <div class="search-inner">
+                    <div class="search-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                    </div>
+                    <input
+                        type="text"
+                        class="search-input"
+                        id="query-input"
+                        placeholder="What is the Z-Transform? How does ROC work?"
+                        autocomplete="off"
+                        autofocus
+                    >
+                    <button class="search-btn" id="search-btn" onclick="submitQuery()">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                            <polyline points="12 5 19 12 12 19"></polyline>
+                        </svg>
+                        Search
+                    </button>
+                </div>
+            </div>
+            <div class="search-hint">
+                <span>Press <kbd>Enter</kbd> to search</span>
+                <span>Press <kbd>Ctrl+K</kbd> to focus</span>
+            </div>
+        </section>
+
+        <!-- Loading -->
+        <section class="loading-section" id="loading-section">
+            <div class="spinner-container">
+                <div class="spinner-ring"></div>
+                <div class="spinner-ring"></div>
+                <div class="spinner-ring"></div>
+            </div>
+            <div class="loading-text">Searching your notes…</div>
+            <div class="loading-step" id="loading-step">Embedding query → hybrid search → generating answer</div>
+        </section>
+
+        <!-- Error -->
+        <section class="error-section" id="error-section">
+            <div class="error-card">
+                <div class="error-icon">⚠️</div>
+                <div class="error-message" id="error-message">Something went wrong.</div>
+                <div class="error-detail" id="error-detail"></div>
+            </div>
+        </section>
+
+        <!-- Answer -->
+        <section class="answer-section" id="answer-section">
+            <div class="answer-card">
+                <div class="answer-header">
+                    <div class="answer-header-icon">💡</div>
+                    <div class="answer-header-text">
+                        <h2>Answer</h2>
+                        <span id="answer-meta">from your handwritten notes</span>
+                    </div>
+                </div>
+                <div class="answer-body">
+                    <div class="answer-content" id="answer-content"></div>
+                </div>
+            </div>
+
+            <!-- Sources -->
+            <div class="sources-section">
+                <div class="sources-header">
+                    <span class="sources-title">📚 Sources</span>
+                    <span class="sources-count" id="sources-count"></span>
+                </div>
+                <div id="sources-list"></div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        const queryInput = document.getElementById('query-input');
+        const searchBtn = document.getElementById('search-btn');
+        const loadingSection = document.getElementById('loading-section');
+        const loadingStep = document.getElementById('loading-step');
+        const answerSection = document.getElementById('answer-section');
+        const errorSection = document.getElementById('error-section');
+        const answerContent = document.getElementById('answer-content');
+        const answerMeta = document.getElementById('answer-meta');
+        const sourcesList = document.getElementById('sources-list');
+        const sourcesCount = document.getElementById('sources-count');
+
+        // Enter to submit
+        queryInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                submitQuery();
+            }
+        });
+
+        // Ctrl+K to focus
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                e.preventDefault();
+                queryInput.focus();
+                queryInput.select();
+            }
+        });
+
+        // Loading step animation
+        const loadingSteps = [
+            'Embedding query vector…',
+            'Dense search → Qdrant vector DB…',
+            'BM25 sparse keyword search…',
+            'Fusing results with RRF…',
+            'Generating answer with LLM…',
+        ];
+
+        let loadingInterval = null;
+
+        function startLoadingAnimation() {
+            let stepIdx = 0;
+            loadingStep.textContent = loadingSteps[0];
+            loadingInterval = setInterval(() => {
+                stepIdx = (stepIdx + 1) % loadingSteps.length;
+                loadingStep.style.opacity = 0;
+                setTimeout(() => {
+                    loadingStep.textContent = loadingSteps[stepIdx];
+                    loadingStep.style.opacity = 1;
+                }, 150);
+            }, 2000);
+        }
+
+        function stopLoadingAnimation() {
+            if (loadingInterval) {
+                clearInterval(loadingInterval);
+                loadingInterval = null;
+            }
+        }
+
+        function showState(state) {
+            loadingSection.classList.remove('active');
+            answerSection.classList.remove('active');
+            errorSection.classList.remove('active');
+
+            if (state === 'loading') loadingSection.classList.add('active');
+            if (state === 'answer') answerSection.classList.add('active');
+            if (state === 'error') errorSection.classList.add('active');
+        }
+
+        function getSourceBadgeClass(source) {
+            if (source === 'both') return 'badge-both';
+            if (source === 'bm25') return 'badge-bm25';
+            return 'badge-dense';
+        }
+
+        function getSourceLabel(source) {
+            if (source === 'both') return '⚡ Semantic + Keyword';
+            if (source === 'bm25') return '🔤 Keyword';
+            return '🧠 Semantic';
+        }
+
+        function truncateText(text, maxLen = 200) {
+            if (text.length <= maxLen) return text;
+            return text.substring(0, maxLen).trim() + '…';
+        }
+
+        function formatText(text) {
+            if (!text) return "";
+            // Escape HTML to prevent XSS
+            const temp = document.createElement('div');
+            temp.textContent = text;
+            let safeHtml = temp.innerHTML;
+            
+            // Convert double newlines to paragraphs
+            safeHtml = safeHtml.replace(/\n\n/g, '</p><p>');
+            // Convert single newlines to line breaks
+            safeHtml = safeHtml.replace(/\n/g, '<br>');
+            
+            return '<p>' + safeHtml + '</p>';
+        }
+
+        async function submitQuery() {
+            const question = queryInput.value.trim();
+            if (!question) {
+                queryInput.focus();
+                return;
+            }
+
+            // Show loading
+            showState('loading');
+            startLoadingAnimation();
+            searchBtn.disabled = true;
+
+            try {
+                const response = await fetch('/api/query', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question, top_k: 5, alpha: 0.6 }),
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || `Server error (${response.status})`);
+                }
+
+                // Render answer
+                answerContent.innerHTML = formatText(data.answer);
+                answerMeta.textContent = `${data.sources.length} sources found from your notes`;
+
+                // Render sources
+                sourcesList.innerHTML = '';
+                sourcesCount.textContent = `${data.sources.length} chunks`;
+
+                data.sources.forEach((src, idx) => {
+                    const card = document.createElement('div');
+                    card.className = 'source-card';
+                    card.style.animationDelay = `${idx * 0.06}s`;
+
+                    const sourceClass = getSourceBadgeClass(src.source);
+                    const sourceLabel = getSourceLabel(src.source);
+
+                    card.innerHTML = `
+                        <div class="source-meta">
+                            <span class="source-badge badge-page">Page ${src.page_no}</span>
+                            <span class="source-badge badge-section">${src.section}</span>
+                            <span class="source-badge badge-score">RRF: ${src.score}</span>
+                            <span class="source-badge badge-source ${sourceClass}">${sourceLabel}</span>
+                        </div>
+                        <div class="source-text">${formatText(truncateText(src.text))}</div>
+                    `;
+
+                    sourcesList.appendChild(card);
+                });
+
+                stopLoadingAnimation();
+                showState('answer');
+
+                // Trigger MathJax rendering of math formulas
+                if (window.MathJax) {
+                    MathJax.typesetPromise().catch((err) => console.log('MathJax error:', err));
+                }
+
+            } catch (err) {
+                stopLoadingAnimation();
+                document.getElementById('error-message').textContent = 'Query failed';
+                document.getElementById('error-detail').textContent = err.message;
+                showState('error');
+            } finally {
+                searchBtn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>

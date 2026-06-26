@@ -17,3 +17,8 @@ python-dotenv
 
 # Validation (optional)
 jsonschema
+
+# Web application & Hybrid retrieval
+fastapi
+uvicorn
+rank-bm25

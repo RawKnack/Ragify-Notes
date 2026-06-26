@@ -145,3 +145,47 @@ def get_collection_info():
         "vector_size": info.config.params.vectors.size,
         "distance": info.config.params.vectors.distance,
     }
+
+
+def get_all_chunks() -> list[dict]:
+    """
+    Retrieve all stored chunks from Qdrant.
+    Used to build the BM25 corpus for hybrid retrieval.
+
+    Returns a list of dicts with chunk_id, text, and metadata.
+    """
+    info = client.get_collection(COLLECTION_NAME)
+    total = info.points_count
+
+    if total == 0:
+        return []
+
+    # Scroll through all points in the collection
+    all_chunks = []
+    offset = None
+
+    while True:
+        results, next_offset = client.scroll(
+            collection_name=COLLECTION_NAME,
+            limit=100,
+            offset=offset,
+            with_payload=True,
+            with_vectors=False,
+        )
+
+        for point in results:
+            payload = point.payload
+            all_chunks.append({
+                "chunk_id": payload.get("chunk_id"),
+                "text": payload.get("text", ""),
+                "metadata": {
+                    k: v for k, v in payload.items()
+                    if k not in ("chunk_id", "text")
+                },
+            })
+
+        if next_offset is None:
+            break
+        offset = next_offset
+
+    return all_chunks
