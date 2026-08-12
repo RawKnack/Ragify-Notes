@@ -4,21 +4,33 @@ PyMuPDF
 # Image handling
 pillow
 
-# LLM clients
-openai
-google-genai
-anthropic
+# LangChain core + integrations
+langchain
+langchain-community
+langchain-google-genai
+langchain-huggingface
+
+# Cross-encoder re-ranking (used by LangChain CrossEncoderReranker)
+sentence-transformers
 
 # Vector database
-qdrant-client
+faiss-cpu
+
+# Sparse retrieval (used by LangChain BM25Retriever)
+rank-bm25
 
 # Config
 python-dotenv
 
+# Web application
+fastapi
+uvicorn[standard]
+python-multipart
+
+# Benchmarking & Experiment Tracking
+ragas
+mlflow
+datasets
+
 # Validation (optional)
 jsonschema
-
-# Web application & Hybrid retrieval
-fastapi
-uvicorn
-rank-bm25

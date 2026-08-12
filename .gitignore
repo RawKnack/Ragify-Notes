@@ -1,89 +1,50 @@
-# Virtual environment
-venv/
-env/
-.env
-
-# API keys (never commit)
-*.env
-.env.*
-
-# Python cache
+# Python
 __pycache__/
 *.py[cod]
-*.pyo
-*.pyd
+*$py.class
+*.egg-info/
+dist/
+build/
+*.egg
 
-# Data files (PDFs and outputs can be large)
-Data/input_pdfs/
-Data/output_json/
+# Virtual environments
+myenv/
+venv/
+.venv/
+env/
 
-# Qdrant local storage
-qdrant_storage/
+# Environment variables (contains API keys)
+.env
 
 # IDE
 .vscode/
 .idea/
-*.code-workspace
+*.swp
+*.swo
 
 # OS
 .DS_Store
 Thumbs.db
 
-# Logs
-*.log
-
-# Jupyter (if you use notebooks)
-.ipynb_checkpoints/
-*.ipynb# Python
-__pycache__/
-*.py[cod]
-*.pyo
-*.pyd
-*.so
-
-# Virtual Environment
-myenv/
-venv/
-.env/
-
-# VS Code
-.vscode/
-
-# Jupyter
-.ipynb_checkpoints/
-
-# OS files
-.DS_Store
-Thumbs.db
-
-# Qdrant local storage
+# Vector stores
 qdrant_storage/
+faiss_index/
 
-# Generated outputs
-Data/output_json/
+# MLflow
+mlruns/
+mlflow.db
+*.db
 
 # Logs
 *.log
+server.log
 
-# Python packaging
-build/
-dist/
-*.egg-info/
-
-# HuggingFace cache (optional)
-.cache/
-huggingface/
-
-# Environment variables
-.env
-
-# Temporary files
-temp/
-tmp/
-
-# PDF/image test files (optional)
-Data/input_pdfs/*.pdf
+# Data outputs (keep input_pdfs, ignore generated outputs)
+Data/output_json/
 Data/images/
 
-# Model downloads (optional)
-models/
+# Evaluation results
+evaluation/results/
+
+# Model cache (downloaded at runtime)
+.cache/

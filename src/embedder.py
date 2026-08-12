@@ -1,33 +1,21 @@
-from sentence_transformers import SentenceTransformer
+from langchain_huggingface import HuggingFaceEndpointEmbeddings
+from config.settings import HUGGINGFACE_API_KEY, EMBED_MODEL_NAME, EMBED_DIMENSION
 
-# Local embedding model
-model = SentenceTransformer("all-MiniLM-L6-v2")
-
-
-def embed_text(text: str):
-    """
-    Embed a single query/text.
-    Returns list[float]
-    """
-    embedding = model.encode(text)
-    return embedding.tolist()
+embeddings = HuggingFaceEndpointEmbeddings(
+    model=EMBED_MODEL_NAME,
+    huggingfacehub_api_token=HUGGINGFACE_API_KEY,
+)
 
 
-def embed_chunks(chunks: list[dict]):
-    """
-    Batch embed chunks locally.
-    Adds embedding to each chunk.
-    """
+def embed_text(text: str) -> list[float]:
+    return embeddings.embed_query(text)
 
-    print(f"\n🔢 Embedding {len(chunks)} chunks locally...")
 
+def embed_chunks(chunks: list[dict]) -> list[dict]:
     texts = [chunk["text"] for chunk in chunks]
+    vectors = embeddings.embed_documents(texts)
 
-    embeddings = model.encode(texts).tolist()
-
-    for chunk, emb in zip(chunks, embeddings):
-        chunk["embedding"] = emb
-
-    print(f"✅ Embedded {len(chunks)} chunks")
+    for chunk, vec in zip(chunks, vectors):
+        chunk["embedding"] = vec
 
     return chunks
