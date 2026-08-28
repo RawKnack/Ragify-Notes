@@ -40,6 +40,7 @@ def parse_fidelity(text: str) -> dict:
         "changed_equations": "unknown",
         "illegible_count": 0,
         "confidence": "medium",
+        "content_density": "medium",
     }
 
     patterns = {
@@ -47,6 +48,7 @@ def parse_fidelity(text: str) -> dict:
         "changed_equations": r"changed_equations:\s*(\w+)",
         "illegible_count":   r"illegible_count:\s*(\d+)",
         "confidence":        r"confidence:\s*(\w+)",
+        "content_density":   r"content_density:\s*(\w+)",
     }
 
     for key, pattern in patterns.items():
