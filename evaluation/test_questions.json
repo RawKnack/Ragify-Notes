@@ -1,0 +1,26 @@
+[
+    {
+        "question": "What is the Z-Transform and how does it relate to the Discrete-Time Fourier Transform (DTFT)?",
+        "ground_truth": "The Z-Transform converts a discrete-time sequence x[n] into the complex z-domain as X(z) = sum of x[n] * z^(-n) from n=-infinity to infinity. It generalizes the DTFT by substituting e^(j*omega) with z = r*e^(j*omega). When r = 1 (|z| = 1, the unit circle), the Z-Transform reduces exactly to the DTFT."
+    },
+    {
+        "question": "What is the Region of Convergence (ROC) in the z-plane and why does it depend only on magnitude r?",
+        "ground_truth": "The Region of Convergence (ROC) is the set of z values in the complex plane for which the Z-Transform summation converges to a finite value. Because X(z) corresponds to the DTFT of x[n]*r^(-n), convergence depends strictly on the radial distance r = |z| and not on the frequency angle omega, making the ROC a circle or ring centered at the origin in the z-plane."
+    },
+    {
+        "question": "What is the relationship between the unit circle on the z-plane and the existence of the Fourier Transform?",
+        "ground_truth": "The Discrete-Time Fourier Transform (DTFT) of a discrete-time signal x[n] exists if and only if the Region of Convergence (ROC) of its Z-Transform X(z) includes the unit circle (|z| = 1)."
+    },
+    {
+        "question": "What is Conjoint Analysis and what is its primary objective in market research?",
+        "ground_truth": "Conjoint Analysis is a statistical market research technique developed by Paul Green at the Wharton School to understand how customers value product or service features jointly. Its objective is to determine which combination of a limited number of attributes is most influential on consumer choice by analyzing trade-offs across controlled product profiles."
+    },
+    {
+        "question": "What are part-worth utilities in Conjoint Analysis and how are they used?",
+        "ground_truth": "Part-worth utilities (or implicit valuations) are numerical values derived for each individual feature/attribute and level of a product. They represent the specific value a customer assigns to a feature, and summing part-worth utilities across all attributes determines total product utility to estimate market share, revenue, and customer preference."
+    },
+    {
+        "question": "What role does Fractional Factorial Design play in Conjoint Analysis?",
+        "ground_truth": "Fractional Factorial Design of Experiments allows market researchers to select a small, unbiased, independent subset of product concepts (e.g. 16 profile cards out of 288 total combinations) for consumers to rank/rate, drastically reducing survey length while enabling full estimation of all attribute utilities."
+    }
+]
