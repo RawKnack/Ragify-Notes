@@ -1,0 +1,39 @@
+services:
+  # ── RagifyNotes FastAPI Application ────────────────────────────
+  ragify:
+    build: .
+    container_name: ragify-notes
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./faiss_index:/app/faiss_index      # Persist FAISS index
+      - ./Data:/app/Data                     # Persist notes data
+    env_file:
+      - .env
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/api/stats')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ── MLflow Tracking Server (for benchmarking) ─────────────────
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.16.0
+    container_name: ragify-mlflow
+    ports:
+      - "5001:5000"
+    volumes:
+      - mlflow_data:/mlflow/data
+      - ./mlruns:/mlflow/mlruns
+    command: >
+      mlflow server
+      --host 0.0.0.0
+      --port 5000
+      --backend-store-uri sqlite:////mlflow/data/mlflow.db
+      --default-artifact-root /mlflow/mlruns
+    restart: unless-stopped
+
+volumes:
+  mlflow_data:
+
