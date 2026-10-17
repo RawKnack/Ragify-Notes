@@ -1,14 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Query your handwritten engineering notes using AI-powered hybrid search (semantic + keyword).">
+    <meta name="description"
+        content="Query your handwritten engineering notes using AI-powered hybrid search (semantic + keyword).">
     <title>Notes RAG — Ask Your Handwritten Notes</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+
     <!-- MathJax Configuration & Loader -->
     <script>
         window.MathJax = {
@@ -25,9 +29,14 @@
     </script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 
+    <!-- Marked.js for Markdown rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
     <style>
         /* ── Reset & Base ──────────────────────────────────────── */
-        *, *::before, *::after {
+        *,
+        *::before,
+        *::after {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
@@ -45,7 +54,7 @@
             --text-muted: #5a5a70;
             --accent-indigo: #6366f1;
             --accent-violet: #8b5cf6;
-            --accent-cyan: #22d3ee;
+            --accent-cyan: #25c1da;
             --accent-emerald: #34d399;
             --accent-amber: #fbbf24;
             --gradient-primary: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a78bfa 100%);
@@ -100,9 +109,19 @@
         }
 
         @keyframes drift {
-            0%, 100% { transform: translate(0, 0) scale(1); }
-            33% { transform: translate(30px, -20px) scale(1.05); }
-            66% { transform: translate(-20px, 15px) scale(0.95); }
+
+            0%,
+            100% {
+                transform: translate(0, 0) scale(1);
+            }
+
+            33% {
+                transform: translate(30px, -20px) scale(1.05);
+            }
+
+            66% {
+                transform: translate(-20px, 15px) scale(0.95);
+            }
         }
 
         /* ── Layout ────────────────────────────────────────────── */
@@ -143,8 +162,17 @@
         }
 
         @keyframes pulse-dot {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.5; transform: scale(0.8); }
+
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 0.5;
+                transform: scale(0.8);
+            }
         }
 
         h1 {
@@ -331,7 +359,9 @@
         }
 
         @keyframes spin {
-            to { transform: rotate(360deg); }
+            to {
+                transform: rotate(360deg);
+            }
         }
 
         .loading-text {
@@ -358,13 +388,25 @@
         }
 
         @keyframes slideUp {
-            from { opacity: 0; transform: translateY(16px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(16px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
         }
 
         /* Answer Card */
@@ -417,14 +459,111 @@
 
         .answer-content {
             font-size: 15px;
-            line-height: 1.75;
+            line-height: 1.8;
             color: var(--text-primary);
-            white-space: pre-wrap;
             word-wrap: break-word;
         }
 
         .answer-content p {
-            margin-bottom: 12px;
+            margin-bottom: 14px;
+        }
+
+        .answer-content h2 {
+            font-size: 18px;
+            font-weight: 700;
+            color: #c4b5fd;
+            margin: 24px 0 10px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .answer-content h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #a5b4fc;
+            margin: 20px 0 8px;
+        }
+
+        .answer-content strong {
+            color: #e0e7ff;
+            font-weight: 600;
+        }
+
+        .answer-content ul,
+        .answer-content ol {
+            margin: 10px 0 14px 20px;
+            padding: 0;
+        }
+
+        .answer-content li {
+            margin-bottom: 6px;
+            padding-left: 4px;
+        }
+
+        .answer-content li::marker {
+            color: var(--accent-indigo);
+        }
+
+        .answer-content code {
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.15);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            color: var(--accent-cyan);
+        }
+
+        .answer-content pre {
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            padding: 14px 18px;
+            margin: 12px 0;
+            overflow-x: auto;
+        }
+
+        .answer-content pre code {
+            background: none;
+            border: none;
+            padding: 0;
+            font-size: 13px;
+            color: var(--text-primary);
+        }
+
+        .answer-content blockquote {
+            border-left: 3px solid var(--accent-violet);
+            margin: 12px 0;
+            padding: 8px 16px;
+            background: rgba(139, 92, 246, 0.06);
+            border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+            color: var(--text-secondary);
+        }
+
+        .answer-content hr {
+            border: none;
+            border-top: 1px solid var(--border-subtle);
+            margin: 18px 0;
+        }
+
+        .answer-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 14px 0;
+            font-size: 13px;
+        }
+
+        .answer-content th,
+        .answer-content td {
+            border: 1px solid var(--border-subtle);
+            padding: 8px 12px;
+            text-align: left;
+        }
+
+        .answer-content th {
+            background: rgba(99, 102, 241, 0.08);
+            font-weight: 600;
+            color: var(--accent-indigo);
         }
 
         /* ── Sources Section ───────────────────────────────────── */
@@ -603,6 +742,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="ambient-bg"></div>
 
@@ -614,7 +754,8 @@
                 Hybrid RAG Engine
             </div>
             <h1>Ask Your Notes</h1>
-            <p class="header-subtitle">Search your handwritten engineering notes with AI — powered by semantic + keyword hybrid retrieval.</p>
+            <p class="header-subtitle">Search your handwritten engineering notes with AI — powered by semantic + keyword
+                hybrid retrieval.</p>
         </header>
 
         <!-- Search -->
@@ -622,21 +763,17 @@
             <div class="search-card" id="search-card">
                 <div class="search-inner">
                     <div class="search-icon">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <circle cx="11" cy="11" r="8"></circle>
                             <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                         </svg>
                     </div>
-                    <input
-                        type="text"
-                        class="search-input"
-                        id="query-input"
-                        placeholder="What is the Z-Transform? How does ROC work?"
-                        autocomplete="off"
-                        autofocus
-                    >
+                    <input type="text" class="search-input" id="query-input"
+                        placeholder="What is the Z-Transform? How does ROC work?" autocomplete="off" autofocus>
                     <button class="search-btn" id="search-btn" onclick="submitQuery()">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                             <line x1="5" y1="12" x2="19" y2="12"></line>
                             <polyline points="12 5 19 12 12 19"></polyline>
                         </svg>
@@ -728,7 +865,7 @@
         // Loading step animation
         const loadingSteps = [
             'Embedding query vector…',
-            'Dense search → Qdrant vector DB…',
+            'Dense search → FAISS vector store…',
             'BM25 sparse keyword search…',
             'Fusing results with RRF…',
             'Generating answer with LLM…',
@@ -783,19 +920,24 @@
             return text.substring(0, maxLen).trim() + '…';
         }
 
-        function formatText(text) {
+        // Configure marked for safe markdown rendering
+        marked.setOptions({
+            breaks: true,
+            gfm: true,
+        });
+
+        function formatAnswer(text) {
             if (!text) return "";
-            // Escape HTML to prevent XSS
+            // Use marked.js to render markdown from LLM response
+            return marked.parse(text);
+        }
+
+        function formatSourceText(text) {
+            if (!text) return "";
+            // Simple text formatting for source chunks (no full markdown)
             const temp = document.createElement('div');
             temp.textContent = text;
-            let safeHtml = temp.innerHTML;
-            
-            // Convert double newlines to paragraphs
-            safeHtml = safeHtml.replace(/\n\n/g, '</p><p>');
-            // Convert single newlines to line breaks
-            safeHtml = safeHtml.replace(/\n/g, '<br>');
-            
-            return '<p>' + safeHtml + '</p>';
+            return temp.innerHTML;
         }
 
         async function submitQuery() {
@@ -823,8 +965,8 @@
                     throw new Error(data.error || `Server error (${response.status})`);
                 }
 
-                // Render answer
-                answerContent.innerHTML = formatText(data.answer);
+                // Render answer with markdown
+                answerContent.innerHTML = formatAnswer(data.answer);
                 answerMeta.textContent = `${data.sources.length} sources found from your notes`;
 
                 // Render sources
@@ -846,7 +988,7 @@
                             <span class="source-badge badge-score">RRF: ${src.score}</span>
                             <span class="source-badge badge-source ${sourceClass}">${sourceLabel}</span>
                         </div>
-                        <div class="source-text">${formatText(truncateText(src.text))}</div>
+                        <div class="source-text">${formatSourceText(truncateText(src.text))}</div>
                     `;
 
                     sourcesList.appendChild(card);
@@ -871,4 +1013,5 @@
         }
     </script>
 </body>
+
 </html>
