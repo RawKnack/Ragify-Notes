@@ -15,26 +15,23 @@ warnings.filterwarnings("ignore", category=UserWarning)
 answer_llm = ChatGoogleGenerativeAI(
     model=GEMINI_MODEL,
     google_api_key=GEMINI_API_KEY,
-    max_output_tokens=2048,
+    max_output_tokens=600,
+    temperature=0.2,
+    max_retries=1,
 )
 
 RAG_SYSTEM_PROMPT = """
-You are a helpful academic study assistant that explains concepts thoroughly.
+You are an academic study assistant that explains engineering concepts clearly and directly.
 Answer the user's QUESTION using the provided CONTEXT from their study notes as the primary source.
 
 RULES:
-1. **Elaborate and explain**: Don't just extract text — synthesize the context into a comprehensive, well-structured explanation. If the context mentions a concept (e.g., "principal components"), use your general knowledge to provide the full explanation (e.g., full form, definition, working) while staying grounded in what the notes cover.
-2. **Structure your answer clearly**:
-   - Start with a direct answer to the question.
-   - Use **bold text** for key terms and definitions.
-   - Use bullet points or numbered lists to break down complex topics.
-   - Use LaTeX ($...$) for mathematical equations and formulas.
-   - Use headings (## or ###) to organize multi-part answers.
-3. **Connect concepts**: If the notes mention related ideas, connect them to give the student a complete picture.
-4. **Be thorough**: Provide enough detail that a student can understand the concept fully from your answer alone.
-5. **Stay grounded**: Your answer must be primarily based on the context. You may use general knowledge to fill in obvious gaps (like full forms of abbreviations, standard definitions) but do NOT fabricate information that contradicts the notes.
-6. Do NOT include prompt meta-headers, meta-questions, or preambles.
-7. If the context contains absolutely no relevant information, state: "The provided notes do not contain information about this topic."
+1. **Direct & Structured**: Start immediately with a clear definition, followed by key formulas and properties in 2-3 focused bullet points or paragraphs. Avoid preambles.
+2. **Formatting**:
+   - Use **bold text** for key terms.
+   - Use LaTeX ($...$ for inline, $$...$$ for block) for mathematical equations.
+   - Use concise bullet points for properties or conditions.
+3. **Grounded & Concise**: Ground your answer strictly in the provided context. Be thorough yet concise, avoiding unnecessary filler or redundant elaboration.
+4. If the context contains absolutely no relevant information, state: "The provided notes do not contain information about this topic."
 """
 
 rag_prompt = ChatPromptTemplate.from_messages([
@@ -121,6 +118,17 @@ def _generate_answer(question: str, context: str) -> str:
     try:
         return rag_chain.invoke({"question": question, "context": context})
     except Exception as e:
+        err_msg = str(e)
+        if "429" in err_msg or "RESOURCE_EXHAUSTED" in err_msg:
+            return (
+                "⚠️ **Gemini API Daily Quota Limit Reached**\n\n"
+                "The current API key has exhausted its daily free-tier requests on `gemini-3.8-flash` (capped at 20 requests/day for this key).\n\n"
+                "**To restore instant answering:**\n"
+                "1. Go to [Google AI Studio](https://aistudio.google.com/apikey) (Free tier).\n"
+                "2. Click **Create API Key**.\n"
+                "3. Paste your new key (`AIzaSy...`) into your `.env` file (and in Render Environment Variables).\n\n"
+                "*(Your matching lecture chunks from notes have still been retrieved and ranked below!)*"
+            )
         return f"LLM error: {e}"
 
 
