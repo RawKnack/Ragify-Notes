@@ -126,7 +126,7 @@ def _generate_answer(question: str, context: str) -> str:
         return rag_chain.invoke({"question": question, "context": context})
     except Exception as e:
         err_msg = str(e)
-        fallback_models = ["gemini-3.5-flash", "gemini-flash-lite-latest"]
+        fallback_models = ["gemini-2.5-flash-lite", "gemini-flash-lite-latest", "gemini-3.5-flash"]
         for fb_model in fallback_models:
             if fb_model == GEMINI_MODEL:
                 continue
@@ -152,6 +152,11 @@ def _generate_answer(question: str, context: str) -> str:
                 "2. Click **Create API Key**.\n"
                 "3. Paste your new key into your `.env` file (and in Render Environment Variables).\n\n"
                 "*(Your matching lecture chunks from notes have still been retrieved and ranked below!)*"
+            )
+        if "503" in err_msg or "UNAVAILABLE" in err_msg:
+            return (
+                "⚠️ **Gemini Service Temporarily Busy (503)**\n\n"
+                "Google's free-tier servers are temporarily experiencing high demand. Please re-run your search in a few seconds."
             )
         return f"LLM error: {e}"
 
