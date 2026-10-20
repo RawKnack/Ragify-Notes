@@ -1,36 +1,15 @@
+from langchain_community.cross_encoders import HuggingFaceCrossEncoder
+from langchain_classic.retrievers.document_compressors import CrossEncoderReranker
 from langchain_core.documents import Document
 from config.settings import RERANK_MODEL_NAME
 
-_cross_encoder_reranker = None
-
-
-def _get_reranker():
-    global _cross_encoder_reranker
-    if _cross_encoder_reranker is None:
-        try:
-            import torch
-            torch.set_num_threads(1)
-        except ImportError:
-            pass
-
-        from langchain_community.cross_encoders import HuggingFaceCrossEncoder
-        from langchain_classic.retrievers.document_compressors import CrossEncoderReranker
-
-        hf_cross_encoder = HuggingFaceCrossEncoder(model_name=RERANK_MODEL_NAME)
-        _cross_encoder_reranker = CrossEncoderReranker(model=hf_cross_encoder, top_n=5)
-
-    return _cross_encoder_reranker
+hf_cross_encoder = HuggingFaceCrossEncoder(model_name=RERANK_MODEL_NAME)
+cross_encoder_reranker = CrossEncoderReranker(model=hf_cross_encoder, top_n=5)
 
 
 def rerank(query: str, chunks: list[dict], top_k: int = 5) -> list[dict]:
     if not chunks:
         return []
-
-    try:
-        reranker_instance = _get_reranker()
-    except Exception as e:
-        print(f"Reranker loading warning: {e}, falling back to hybrid scores")
-        return chunks[:top_k]
 
     docs = []
     for chunk in chunks:
@@ -47,12 +26,8 @@ def rerank(query: str, chunks: list[dict], top_k: int = 5) -> list[dict]:
         )
         docs.append(doc)
 
-    try:
-        reranker_instance.top_n = top_k
-        reranked_docs = reranker_instance.compress_documents(docs, query)
-    except Exception as e:
-        print(f"Reranking error: {e}, returning candidate chunks")
-        return chunks[:top_k]
+    cross_encoder_reranker.top_n = top_k
+    reranked_docs = cross_encoder_reranker.compress_documents(docs, query)
 
     results = []
     for doc in reranked_docs:

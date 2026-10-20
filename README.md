@@ -1,3 +1,12 @@
+---
+title: RagifyNotes
+emoji: 📝
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+app_port: 7860
+---
+
 <div align="center">
 
 # 📝 RagifyNotes v2
@@ -19,7 +28,7 @@
 [Retrieval Modes](#-retrieval-modes) •
 [Benchmarking](#-evaluation--benchmarking) •
 [Quickstart](#-quickstart-guide) •
-[Docker & Deployment](#-docker--cloud-deployment) •
+[Deployment](#-hugging-face-spaces-deployment) •
 [API Reference](#-api-reference)
 
 ---
@@ -28,7 +37,7 @@
 
 ## 📌 Overview
 
-Engineering students generate hundreds of pages of complex handwritten notes filled with mathematical derivations, schematics, and specialized technical terminology. Standard OCR systems fail miserably on handwritten cursive, non-linear mathematical equations, and unstructured margin notes.
+Engineering students generate hundreds of pages of complex handwritten notes filled with mathematical derivations, schematics, and specialized technical terminology. Standard OCR systems fail on handwritten cursive, non-linear mathematical equations, and unstructured margin notes.
 
 **RagifyNotes v2** is an end-to-end Generative AI and Retrieval-Augmented Generation (RAG) platform that ingests raw handwritten PDF notes, transcribes them into structured Markdown and LaTeX using **Google Gemini 3.8 Flash Vision OCR**, indexes them into a high-performance **FAISS vector database**, and enables natural language question-answering with strict source attribution and zero hallucinations.
 
@@ -39,9 +48,9 @@ Featuring a **3-stage hybrid retrieval pipeline** (Dense FAISS + Lexical BM25 + 
 ## 🚀 Key Features
 
 * 👁️ **Multimodal Vision OCR**: Uses Gemini 3.8 Flash at 150 DPI to accurately transcribe messy handwriting, mathematical proofs, circuit diagrams, and Greek variables into structured LaTeX/Markdown.
-* 🔗 **Full LangChain Framework Integration**: Standardized architecture leveraging `HuggingFaceEndpointEmbeddings`, `BM25Retriever`, and `CrossEncoderReranker`.
+* 🔗 **LangChain Framework Integration**: Standardized architecture leveraging `HuggingFaceEmbeddings`, `BM25Retriever`, and `CrossEncoderReranker`.
 * ⚡ **Ultra-Lightweight FAISS Vector Store**: High-speed, local file-based vector storage (`faiss-cpu`) replacing bulky external database containers.
-* 🌐 **Zero-Footprint Embeddings**: Uses Hugging Face Remote Inference API (`sentence-transformers/all-MiniLM-L6-v2`) for instant 384-dimensional dense representations without local GPU overhead.
+* 🧠 **Local Embeddings**: Uses `sentence-transformers/all-MiniLM-L6-v2` locally on CPU — zero API keys, zero credits, runs offline or in container.
 * 🔀 **3-Stage Hybrid Retrieval**:
   1. **Dense Semantic Search**: Captures high-level conceptual intent via cosine similarity in FAISS.
   2. **Sparse Lexical Search**: Captures exact mathematical variables and formula terms using BM25.
@@ -49,7 +58,7 @@ Featuring a **3-stage hybrid retrieval pipeline** (Dense FAISS + Lexical BM25 + 
 * 🎯 **Cross-Encoder Re-Ranking**: Employs `cross-encoder/ms-marco-MiniLM-L-6-v2` to compute deep query-document interaction scores, filtering out false positives before LLM generation.
 * 📊 **RAGAS Evaluation & MLflow Tracking**: Built-in benchmark suite measuring Faithfulness, Answer Relevancy, Context Precision, and Context Recall with incremental disk caching and MLflow experiment logging.
 * 🖥️ **Modern Web Application**: Single-page FastAPI interface featuring interactive chat, MathJax LaTeX equation rendering, real-time retrieval mode switching, and drag-and-drop multi-PDF uploads.
-* 🐳 **Containerized & Cloud-Ready**: Fully containerized with Docker & Docker Compose, dynamic `$PORT` handling, and isolated MLflow tracking services.
+* 🐳 **Containerized & Hugging Face Spaces Ready**: Pre-configured Docker setup running on port 7860.
 
 ---
 
@@ -74,7 +83,7 @@ Featuring a **3-stage hybrid retrieval pipeline** (Dense FAISS + Lexical BM25 + 
     Overlapping Recursive Chunking (Target ~500 chars | ~100 overlap)
                                │
                                ▼
-    LangChain HuggingFace Inference API (all-MiniLM-L6-v2, 384-dim)
+    Local Sentence-Transformers Embeddings (all-MiniLM-L6-v2, 384-dim)
                                │
                                ▼
            FAISS Vector Store (persisted to ./faiss_index)
@@ -125,26 +134,11 @@ RagifyNotes provides three selectable retrieval modes, allowing users to benchma
 | **`hybrid`** | ✅ | ✅ | ✅ | ❌ | Queries containing specific equations, variable names, or acronyms. |
 | **`hybrid_rerank`** *(Default)* | ✅ | ✅ | ✅ | ✅ | Complex multi-concept exam questions requiring maximum precision. |
 
-### Why Two-Stage Hybrid + Re-Ranking Matters
-1. **The Bi-Encoder Limitation**: Bi-encoders (`embedder.py`) independently project queries and documents into a shared vector space: $\text{Score} = \cos(\mathbf{q}, \mathbf{d})$. While extremely fast, they miss intricate token-level interactions.
-2. **The Cross-Encoder Advantage**: Cross-encoders pass query and candidate text simultaneously through a BERT transformer encoder, modeling every word-to-word cross-attention relation. Running this over an entire database is computationally prohibitive, but re-ranking the **top 15-20 candidates** takes $<1$ second on CPU while dramatically reducing hallucination.
-
 ---
 
 ## 📈 Evaluation & Benchmarking
 
 RagifyNotes v2 incorporates industry-standard **RAGAS** (Retrieval Augmented Generation Assessment) evaluation tracked via **MLflow**.
-
-### Benchmark Metrics
-
-* **Faithfulness**: Quantifies whether every factual claim in the generated answer is directly grounded in the retrieved note excerpts.
-* **Answer Relevancy**: Measures how directly the generated response addresses the user's inquiry.
-* **Context Precision**: Computes whether the truly relevant chunks are ranked at the top of the context window.
-* **Context Recall**: Evaluates whether all requisite reference facts were successfully retrieved.
-
-### Observed Quantitative Gains
-
-Benchmarked against hand-curated engineering ground-truth questions (e.g., *Z-Transform ROC derivation*, *Conjoint Analysis Part-Worth Utilities*):
 
 | Metric | Naive RAG | Hybrid RAG | Hybrid + Re-Ranking |
 |:---|:---:|:---:|:---:|
@@ -152,8 +146,6 @@ Benchmarked against hand-curated engineering ground-truth questions (e.g., *Z-Tr
 | **Context Precision** | `0.52` | `0.68` | **`0.88+`** |
 | **Faithfulness** | `0.76` | `0.84` | **`0.93+`** |
 | **Answer Relevancy** | `0.91` | `0.94` | **`0.97+`** |
-
-> **Incremental Caching**: The evaluation runner (`evaluation/benchmark.py`) caches individual metric scores per question to disk (`evaluation/results/eval_cache.json`). If rate limits or network hiccups occur, the runner immediately resumes without repeating completed evaluations.
 
 ---
 
@@ -163,7 +155,7 @@ Benchmarked against hand-curated engineering ground-truth questions (e.g., *Z-Tr
 |:---|:---|
 | **Core Framework** | [LangChain](https://www.langchain.com/) (`langchain-core`, `langchain-community`, `langchain-huggingface`, `langchain-google-genai`) |
 | **LLM & Vision OCR** | [Google Gemini 3.8 Flash](https://aistudio.google.com/) via Google GenAI SDK |
-| **Embeddings** | `sentence-transformers/all-MiniLM-L6-v2` via Hugging Face Inference API |
+| **Embeddings** | `sentence-transformers/all-MiniLM-L6-v2` (Local CPU) |
 | **Vector Database** | [FAISS](https://github.com/facebookresearch/faiss) (`faiss-cpu`) |
 | **Sparse Retrieval** | [Rank-BM25](https://github.com/dorianbrown/rank_bm25) |
 | **Re-Ranking** | `cross-encoder/ms-marco-MiniLM-L-6-v2` |
@@ -180,7 +172,7 @@ Benchmarked against hand-curated engineering ground-truth questions (e.g., *Z-Tr
 RagifyNotes/
 ├── app.py                      # FastAPI web server & REST endpoints
 ├── main.py                     # CLI ingestion & interactive query tool
-├── Dockerfile                  # Container definition with dynamic PORT support
+├── Dockerfile                  # Container definition for HF Spaces (Port 7860)
 ├── docker-compose.yml          # Dual-service config (FastAPI app + MLflow)
 ├── requirements.txt            # Python dependencies
 ├── .env.example                # Sample environment configuration
@@ -194,7 +186,7 @@ RagifyNotes/
 │   ├── extract.py              # Gemini 3.8 Flash Vision OCR engine
 │   ├── structure.py            # Text structuring, cleaning & metadata tagging
 │   ├── chunker.py              # Recursive overlapping chunker
-│   ├── embedder.py             # LangChain Hugging Face remote embeddings
+│   ├── embedder.py             # Local sentence-transformers embeddings
 │   ├── vector_store.py         # FAISS vector store indexing & similarity search
 │   ├── retriever.py            # Hybrid RRF retriever & pipeline coordinator
 │   └── reranker.py             # LangChain Cross-Encoder re-ranker compressor
@@ -248,13 +240,11 @@ Copy `.env.example` to `.env`:
 cp .env.example .env
 ```
 
-Open `.env` and insert your API keys:
-* **`GEMINI_API_KEY`**: Obtain from [Google AI Studio](https://aistudio.google.com/apikey) (Free tier available).
-* **`HUGGINGFACE_API_KEY`**: Obtain from [Hugging Face Settings](https://huggingface.co/settings/tokens) (Free tier available).
+Set your Gemini API key in `.env`:
+* **`GEMINI_API_KEY`**: Obtain from [Google AI Studio](https://aistudio.google.com/apikey) (Free tier).
 
 ```env
 GEMINI_API_KEY=your_gemini_api_key_here
-HUGGINGFACE_API_KEY=your_huggingface_api_token_here
 ```
 
 ### 5. Ingest Notes
@@ -264,9 +254,6 @@ Place your handwritten PDF notes in `Data/input_pdfs/` (e.g. `Z-Transform.pdf`):
 ```bash
 # Ingest all PDFs in Data/input_pdfs/:
 python main.py
-
-# Or ingest a specific PDF:
-python main.py --pdf "Data/input_pdfs/Z-Transform.pdf"
 ```
 
 ### 6. Run the Web Application
@@ -279,8 +266,6 @@ Open **`http://localhost:5000`** in your browser.
 ---
 
 ## 💻 CLI Usage
-
-You can also interact with the pipeline directly from your terminal:
 
 ```bash
 # Query using default Hybrid + Re-Ranking mode:
@@ -297,44 +282,30 @@ python main.py --query "What is Parseval's Theorem?" --mode naive --top-k 3
 
 ## 📊 Running Benchmarks
 
-Evaluate pipeline performance with RAGAS and view results in MLflow:
-
 ```bash
 # Run evaluation across all three retrieval modes:
 python -m evaluation.benchmark
 
-# Run evaluation for specific modes:
-python -m evaluation.benchmark --modes naive hybrid_rerank
-
 # Launch MLflow UI to compare experiment runs:
 mlflow ui --backend-store-uri sqlite:///mlflow.db --port 5001
 ```
-Open **`http://localhost:5001`** to explore interactive comparison dashboards.
 
 ---
 
-## 🐳 Docker & Cloud Deployment
+## 🤗 Hugging Face Spaces Deployment
 
-### Local Docker Compose
+Deploy in 2 minutes on Hugging Face Spaces (16 GB RAM Free Tier):
 
-Run both the **RagifyNotes web app** and the **MLflow tracking server** in isolated containers:
-
-```bash
-docker compose up --build
-```
-* **RagifyNotes Web Interface**: `http://localhost:5000`
-* **MLflow Tracking Dashboard**: `http://localhost:5001`
-
-### Cloud Deployment (Render, Railway, Hugging Face Spaces, Cloud Run)
-
-The application Dockerfile includes automatic `$PORT` binding and lightweight remote embeddings:
-
-1. **Push your code to GitHub** (make sure `.env` is ignored by `.gitignore`).
-2. **Connect your repository** to [Render](https://render.com), [Railway](https://railway.app), or [Hugging Face Spaces](https://huggingface.co/spaces) (Docker SDK).
-3. **Set Environment Variables** in your platform settings dashboard:
-   - `GEMINI_API_KEY`
-   - `HUGGINGFACE_API_KEY`
-4. The service will automatically build the container and launch FastAPI on the assigned port.
+1. Go to [huggingface.co/new-space](https://huggingface.co/new-space).
+2. Choose **Docker** $\rightarrow$ **Blank**.
+3. In Space **Settings** $\rightarrow$ **Variables and Secrets**, add:
+   * **`GEMINI_API_KEY`**: Your Google AI Studio API key.
+4. Clone the space repo and push, or link your GitHub repo:
+   ```bash
+   git remote add space https://huggingface.co/spaces/YOUR_USERNAME/YOUR_SPACE_NAME
+   git push space main
+   ```
+5. Hugging Face Spaces will build the Docker container and launch the web UI automatically on port `7860`.
 
 ---
 
@@ -347,17 +318,6 @@ The application Dockerfile includes automatic `$PORT` binding and lightweight re
 | `POST` | `/api/upload` | Uploads and processes a new PDF note file | Multipart Form (`file: .pdf`) |
 | `GET` | `/api/stats` | Returns vector store index stats and PDF count | None |
 | `POST` | `/api/refresh`| Rebuilds the BM25 sparse index | None |
-
----
-
-## 🛡️ Best Practices & Architecture Decisions
-
-1. **Why FAISS over hosted vector databases?**
-   - For study notes and course materials, FAISS provides microsecond similarity search with zero network hops, negligible memory footprint, and seamless disk persistence.
-2. **Why Remote Hugging Face Inference?**
-   - Eliminates downloading heavy PyTorch/Transformer model weights in memory-constrained cloud environments, keeping container builds under 500MB and boot times under 15 seconds.
-3. **Formula & Diagram Preservation**:
-   - Gemini 3.8 Flash produces clean LaTeX formulas (`$$ ... $$`) which are rendered seamlessly on the frontend via MathJax.
 
 ---
 
