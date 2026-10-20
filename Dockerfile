@@ -13,11 +13,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-ENV PORT=7860
-ENV HF_HOME=/tmp/cache
-EXPOSE 7860
+ENV PORT=5000
+EXPOSE 5000
 
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
-    CMD python -c "import urllib.request, os; port = os.getenv('PORT', '7860'); urllib.request.urlopen(f'http://localhost:{port}/api/stats')"
+    CMD python -c "import urllib.request, os; port = os.getenv('PORT', '5000'); urllib.request.urlopen(f'http://localhost:{port}/api/stats')"
 
-CMD ["sh", "-c", "uvicorn app:app --host 0.0.0.0 --port ${PORT:-7860}"]
+CMD ["sh", "-c", "uvicorn app:app --host 0.0.0.0 --port ${PORT:-5000}"]
