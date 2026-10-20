@@ -176,9 +176,5 @@ def api_stats():
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 5000))
-    print("\n" + "=" * 60)
-    print("RagifyNotes v2 — FastAPI Web Interface")
-    print(f"   Open http://localhost:{port} in your browser")
-    print("   Powered by: Gemini 3.8 Flash + FAISS + Cross-Encoder")
-    print("=" * 60 + "\n")
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    print(f"\n[RagifyNotes] Starting server on 0.0.0.0:{port}...", flush=True)
+    uvicorn.run("app:app", host="0.0.0.0", port=port, log_level="info")
