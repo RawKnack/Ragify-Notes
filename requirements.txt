@@ -10,7 +10,8 @@ langchain-community
 langchain-google-genai
 langchain-huggingface
 
-# Cross-encoder re-ranking (used by LangChain CrossEncoderReranker)
+# Cross-encoder re-ranking
+flashrank
 sentence-transformers
 
 # Vector database

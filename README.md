@@ -8,9 +8,10 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![LangChain](https://img.shields.io/badge/LangChain-Integrated-1C3C3C?style=for-the-badge&logo=langchain&logoColor=white)](https://www.langchain.com/)
 [![FAISS](https://img.shields.io/badge/FAISS-Vector%20Store-00599C?style=for-the-badge&logo=c%2B%2B&logoColor=white)](https://github.com/facebookresearch/faiss)
+[![FlashRank](https://img.shields.io/badge/FlashRank-ONNX%20Reranker-FF6F00?style=for-the-badge&logo=lightning&logoColor=white)](https://github.com/PrithivirajDamodaran/FlashRank)
 [![Gemini](https://img.shields.io/badge/Google%20Gemini-3.8%20Flash-4285F4?style=for-the-badge&logo=google&logoColor=white)](https://aistudio.google.com/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
-[![MLflow](https://img.shields.io/badge/MLflow-Tracking-0194E2?style=for-the-badge&logo=mlflow&logoColor=white)](https://mlflow.org/)
+[![Render](https://img.shields.io/badge/Render-Deployed-46E3B7?style=for-the-badge&logo=render&logoColor=white)](https://render.com/)
 
 <br />
 
@@ -19,7 +20,7 @@
 [Retrieval Modes](#-retrieval-modes) •
 [Benchmarking](#-evaluation--benchmarking) •
 [Quickstart](#-quickstart-guide) •
-[Deployment](#-hugging-face-spaces-deployment) •
+[Deployment](#-deployment-guide) •
 [API Reference](#-api-reference)
 
 ---
@@ -32,24 +33,24 @@ Engineering students generate hundreds of pages of complex handwritten notes fil
 
 **RagifyNotes v2** is an end-to-end Generative AI and Retrieval-Augmented Generation (RAG) platform that ingests raw handwritten PDF notes, transcribes them into structured Markdown and LaTeX using **Google Gemini 3.8 Flash Vision OCR**, indexes them into a high-performance **FAISS vector database**, and enables natural language question-answering with strict source attribution and zero hallucinations.
 
-Featuring a **3-stage hybrid retrieval pipeline** (Dense FAISS + Lexical BM25 + Reciprocal Rank Fusion + Cross-Encoder Re-Ranking), RagifyNotes surfaces the exact handwritten lecture context required to answer even the most nuanced technical questions.
+Featuring a **3-stage hybrid retrieval pipeline** (Dense FAISS + Lexical BM25 + Reciprocal Rank Fusion + FlashRank ONNX Re-Ranking), RagifyNotes surfaces the exact handwritten lecture context required to answer even the most nuanced technical questions.
 
 ---
 
 ## 🚀 Key Features
 
 * 👁️ **Multimodal Vision OCR**: Uses Gemini 3.8 Flash at 150 DPI to accurately transcribe messy handwriting, mathematical proofs, circuit diagrams, and Greek variables into structured LaTeX/Markdown.
-* 🔗 **LangChain Framework Integration**: Standardized architecture leveraging `HuggingFaceEmbeddings`, `BM25Retriever`, and `CrossEncoderReranker`.
+* 🔗 **LangChain Framework Integration**: Standardized architecture leveraging `HuggingFaceEmbeddings`, `BM25Retriever`, and `EnsembleRetriever`.
 * ⚡ **Ultra-Lightweight FAISS Vector Store**: High-speed, local file-based vector storage (`faiss-cpu`) replacing bulky external database containers.
 * 🧠 **Local Embeddings**: Uses `sentence-transformers/all-MiniLM-L6-v2` locally on CPU — zero API keys, zero credits, runs offline or in container.
 * 🔀 **3-Stage Hybrid Retrieval**:
   1. **Dense Semantic Search**: Captures high-level conceptual intent via cosine similarity in FAISS.
   2. **Sparse Lexical Search**: Captures exact mathematical variables and formula terms using BM25.
   3. **Reciprocal Rank Fusion (RRF, $k=60$)**: Combines sparse and dense candidate ranks harmoniously.
-* 🎯 **Cross-Encoder Re-Ranking**: Employs `cross-encoder/ms-marco-MiniLM-L-6-v2` to compute deep query-document interaction scores, filtering out false positives before LLM generation.
+* 🎯 **FlashRank ONNX Re-Ranking**: Employs ultra-lightweight ONNX-accelerated re-ranking (`ms-marco-TinyBERT-L-2-v2`, ~4MB model, ~15MB RAM footprint). Eliminates PyTorch cross-encoder memory bloat, enabling zero-cost deployment on 512MB RAM free-tier cloud instances (e.g. Render).
 * 📊 **RAGAS Evaluation & MLflow Tracking**: Built-in benchmark suite measuring Faithfulness, Answer Relevancy, Context Precision, and Context Recall with incremental disk caching and MLflow experiment logging.
 * 🖥️ **Modern Web Application**: Single-page FastAPI interface featuring interactive chat, MathJax LaTeX equation rendering, real-time retrieval mode switching, and drag-and-drop multi-PDF uploads.
-* 🐳 **Containerized & Hugging Face Spaces Ready**: Pre-configured Docker setup running on port 7860.
+* 🐳 **Containerized & Cloud-Ready**: Pre-configured Docker setup ready for one-click deployment on Render, Hugging Face Spaces, or any Docker runtime.
 
 ---
 
@@ -97,8 +98,8 @@ Featuring a **3-stage hybrid retrieval pipeline** (Dense FAISS + Lexical BM25 + 
                      (Top 15-20 Candidates)
                                │
                                ▼
-               Cross-Encoder Re-Ranking Engine
-                 (ms-marco-MiniLM-L-6-v2)
+               FlashRank ONNX Re-Ranking Engine
+                  (ms-marco-TinyBERT-L-2-v2)
                                │
                                ▼
                  Filtered Context (Top 5 Chunks)
@@ -119,7 +120,7 @@ Featuring a **3-stage hybrid retrieval pipeline** (Dense FAISS + Lexical BM25 + 
 
 RagifyNotes provides three selectable retrieval modes, allowing users to benchmark the precision-latency trade-offs in real time:
 
-| Retrieval Mode | Dense (FAISS) | Sparse (BM25) | RRF Fusion | Cross-Encoder Re-Ranking | Best Used For |
+| Retrieval Mode | Dense (FAISS) | Sparse (BM25) | RRF Fusion | FlashRank Re-Ranking | Best Used For |
 |:---|:---:|:---:|:---:|:---:|:---|
 | **`naive`** | ✅ | ❌ | ❌ | ❌ | Conceptual queries where keywords are flexible. |
 | **`hybrid`** | ✅ | ✅ | ✅ | ❌ | Queries containing specific equations, variable names, or acronyms. |
@@ -149,7 +150,7 @@ RagifyNotes v2 incorporates industry-standard **RAGAS** (Retrieval Augmented Gen
 | **Embeddings** | `sentence-transformers/all-MiniLM-L6-v2` (Local CPU) |
 | **Vector Database** | [FAISS](https://github.com/facebookresearch/faiss) (`faiss-cpu`) |
 | **Sparse Retrieval** | [Rank-BM25](https://github.com/dorianbrown/rank_bm25) |
-| **Re-Ranking** | `cross-encoder/ms-marco-MiniLM-L-6-v2` |
+| **Re-Ranking** | [FlashRank](https://github.com/PrithivirajDamodaran/FlashRank) (`ms-marco-TinyBERT-L-2-v2`, ONNX Runtime) |
 | **Web Server & UI** | [FastAPI](https://fastapi.tiangolo.com/), [Uvicorn](https://www.uvicorn.org/), Vanilla HTML5/CSS3/JS, MathJax v3 |
 | **Document Processing** | [PyMuPDF (fitz)](https://pymupdf.readthedocs.io/), Pillow |
 | **Benchmarking & MLOps**| [RAGAS](https://github.com/explodinggradients/ragas), [MLflow](https://mlflow.org/), Hugging Face `datasets` |
@@ -180,7 +181,7 @@ RagifyNotes/
 │   ├── embedder.py             # Local sentence-transformers embeddings
 │   ├── vector_store.py         # FAISS vector store indexing & similarity search
 │   ├── retriever.py            # Hybrid RRF retriever & pipeline coordinator
-│   └── reranker.py             # LangChain Cross-Encoder re-ranker compressor
+│   └── reranker.py             # FlashRank ONNX-accelerated re-ranker compressor
 │
 ├── evaluation/
 │   ├── benchmark.py            # RAGAS evaluation runner with incremental caching
@@ -283,9 +284,28 @@ mlflow ui --backend-store-uri sqlite:///mlflow.db --port 5001
 
 ---
 
-## 🤗 Hugging Face Spaces Deployment
+## 🚀 Deployment Guide
 
-Deploy in 2 minutes on Hugging Face Spaces (16 GB RAM Free Tier):
+### Deploying to Render (Free Tier, 512MB RAM)
+
+RagifyNotes is fully optimized for **Render's Free Web Service** tier ($0/month, 512MB RAM ceiling) thanks to FlashRank's lightweight ONNX re-ranking and pre-built FAISS vector caching.
+
+1. Fork or push this repository to your GitHub account.
+2. In the [Render Dashboard](https://dashboard.render.com/), click **New +** $\rightarrow$ **Web Service**.
+3. Connect your `Ragify-Notes` GitHub repository.
+4. Render automatically detects the root `Dockerfile`:
+   * **Runtime**: Docker
+   * **Instance Type**: Free (0.1 CPU, 512 MB RAM)
+5. Under **Environment Variables**, add:
+   * **`GEMINI_API_KEY`**: Your Google AI Studio API key.
+   * **`PORT`**: `5000` (Render binds to `PORT` automatically).
+6. Click **Deploy Web Service**. Once built, the application is live and accessible worldwide.
+
+---
+
+### Deploying to Hugging Face Spaces (Docker SDK)
+
+You can also deploy to Hugging Face Spaces:
 
 1. Go to [huggingface.co/new-space](https://huggingface.co/new-space).
 2. Choose **Docker** $\rightarrow$ **Blank**.
@@ -296,7 +316,7 @@ Deploy in 2 minutes on Hugging Face Spaces (16 GB RAM Free Tier):
    git remote add space https://huggingface.co/spaces/YOUR_USERNAME/YOUR_SPACE_NAME
    git push space main
    ```
-5. Hugging Face Spaces will build the Docker container and launch the web UI automatically on port `7860`.
+5. Hugging Face Spaces will build the Docker container and launch the web UI automatically.
 
 ---
 

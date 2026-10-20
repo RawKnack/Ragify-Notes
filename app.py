@@ -62,6 +62,12 @@ def read_index():
     return HTMLResponse(content=html_content)
 
 
+@app.head("/")
+def head_index():
+    """Health check responder for Render and load balancers."""
+    return HTMLResponse(content="")
+
+
 @app.post("/api/query")
 def api_query(req: QueryRequest):
     """

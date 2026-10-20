@@ -1,29 +1,18 @@
 import gc
-from langchain_core.documents import Document
+import os
+import tempfile
 from config.settings import RERANK_MODEL_NAME
 
-_cross_encoder_reranker = None
+_ranker = None
 
 
 def get_reranker():
-    global _cross_encoder_reranker
-    if _cross_encoder_reranker is None:
-        try:
-            import torch
-            torch.set_num_threads(1)
-        except ImportError:
-            pass
-
-        from langchain_community.cross_encoders import HuggingFaceCrossEncoder
-        from langchain_classic.retrievers.document_compressors import CrossEncoderReranker
-
-        hf_cross_encoder = HuggingFaceCrossEncoder(
-            model_name=RERANK_MODEL_NAME,
-            model_kwargs={"device": "cpu"},
-        )
-        _cross_encoder_reranker = CrossEncoderReranker(model=hf_cross_encoder, top_n=5)
-
-    return _cross_encoder_reranker
+    global _ranker
+    if _ranker is None:
+        from flashrank import Ranker
+        cache_dir = os.environ.get("FLASHRANK_CACHE_DIR", tempfile.gettempdir())
+        _ranker = Ranker(model_name=RERANK_MODEL_NAME, cache_dir=cache_dir)
+    return _ranker
 
 
 def rerank(query: str, chunks: list[dict], top_k: int = 5) -> list[dict]:
@@ -31,29 +20,27 @@ def rerank(query: str, chunks: list[dict], top_k: int = 5) -> list[dict]:
         return []
 
     try:
-        reranker_instance = get_reranker()
+        ranker_instance = get_reranker()
     except Exception as e:
         print(f"Reranker unavailable: {e}, using hybrid results")
         return chunks[:top_k]
 
-    docs = []
-    for chunk in chunks:
-        doc = Document(
-            page_content=chunk["text"],
-            metadata={
-                "chunk_id": chunk.get("chunk_id", ""),
-                "original_score": chunk.get("score", 0),
-                "source": chunk.get("source", "unknown"),
-                "dense_rank": chunk.get("dense_rank"),
-                "bm25_rank": chunk.get("bm25_rank"),
-                **chunk.get("metadata", {}),
-            }
-        )
-        docs.append(doc)
+    passages = []
+    for i, chunk in enumerate(chunks):
+        passages.append({
+            "id": chunk.get("chunk_id", str(i)),
+            "text": chunk.get("text", ""),
+            "original_score": chunk.get("score", 0),
+            "source": chunk.get("source", "unknown"),
+            "dense_rank": chunk.get("dense_rank"),
+            "bm25_rank": chunk.get("bm25_rank"),
+            "metadata": chunk.get("metadata", {}),
+        })
 
     try:
-        reranker_instance.top_n = top_k
-        reranked_docs = reranker_instance.compress_documents(docs, query)
+        from flashrank import RerankRequest
+        req = RerankRequest(query=query, passages=passages)
+        reranked = ranker_instance.rerank(req)
     except Exception as e:
         print(f"Reranking error: {e}, using hybrid results")
         return chunks[:top_k]
@@ -61,25 +48,17 @@ def rerank(query: str, chunks: list[dict], top_k: int = 5) -> list[dict]:
         gc.collect()
 
     results = []
-    for doc in reranked_docs:
-        meta = doc.metadata.copy()
-
-        chunk_id = meta.pop("chunk_id", "")
-        original_score = meta.pop("original_score", 0)
-        source = meta.pop("source", "unknown")
-        dense_rank = meta.pop("dense_rank", None)
-        bm25_rank = meta.pop("bm25_rank", None)
-        relevance_score = meta.pop("relevance_score", None)
-
+    for item in reranked[:top_k]:
+        relevance_score = item.get("score")
         results.append({
-            "chunk_id": chunk_id,
-            "text": doc.page_content,
-            "score": original_score,
+            "chunk_id": item.get("id", ""),
+            "text": item.get("text", ""),
+            "score": item.get("original_score", 0),
             "rerank_score": round(float(relevance_score), 4) if relevance_score is not None else 0.0,
-            "metadata": meta,
-            "source": source,
-            "dense_rank": dense_rank,
-            "bm25_rank": bm25_rank,
+            "metadata": item.get("metadata", {}),
+            "source": item.get("source", "unknown"),
+            "dense_rank": item.get("dense_rank"),
+            "bm25_rank": item.get("bm25_rank"),
         })
 
     return results
