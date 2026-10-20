@@ -959,11 +959,26 @@
                     body: JSON.stringify({ question, top_k: 5, alpha: 0.6 }),
                 });
 
-                const data = await response.json();
+                let data;
+                const contentType = response.headers.get('content-type') || '';
+                if (contentType.includes('application/json')) {
+                    data = await response.json();
+                } else {
+                    const text = await response.text();
+                    if (response.status === 504 || response.status === 524) {
+                        throw new Error('The query timed out. Render free-tier instances have limited shared CPU and cold starts may take longer. Please try asking again.');
+                    }
+                    if (response.status === 502 || response.status === 503) {
+                        throw new Error('Server is currently starting up or restarting. Please retry in a few moments.');
+                    }
+                    throw new Error(`Server returned unexpected response (${response.status}): ${text.slice(0, 100)}`);
+                }
 
                 if (!response.ok) {
-                    throw new Error(data.error || `Server error (${response.status})`);
+                    const msg = typeof data.detail === 'string' ? data.detail : (data.error || `Server error (${response.status})`);
+                    throw new Error(msg);
                 }
+
 
                 // Render answer with markdown
                 answerContent.innerHTML = formatAnswer(data.answer);

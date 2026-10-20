@@ -15,10 +15,12 @@ warnings.filterwarnings("ignore", category=UserWarning)
 answer_llm = ChatGoogleGenerativeAI(
     model=GEMINI_MODEL,
     google_api_key=GEMINI_API_KEY,
-    max_output_tokens=4096,
+    max_output_tokens=2048,
     temperature=0.2,
+    timeout=45,
     max_retries=1,
 )
+
 
 RAG_SYSTEM_PROMPT = """
 You are an expert academic study assistant that helps engineering students understand concepts thoroughly from their lecture notes.
@@ -134,8 +136,9 @@ def _generate_answer(question: str, context: str) -> str:
                 fb_llm = ChatGoogleGenerativeAI(
                     model=fb_model,
                     google_api_key=GEMINI_API_KEY,
-                    max_output_tokens=4096,
+                    max_output_tokens=2048,
                     temperature=0.2,
+                    timeout=30,
                     max_retries=1,
                 )
                 fb_chain = rag_prompt | fb_llm | StrOutputParser()

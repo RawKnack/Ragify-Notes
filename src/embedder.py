@@ -1,3 +1,4 @@
+import os
 from langchain_core.embeddings import Embeddings
 from fastembed import TextEmbedding
 from config.settings import EMBED_MODEL_NAME
@@ -8,7 +9,8 @@ _model = None
 def get_embed_model():
     global _model
     if _model is None:
-        _model = TextEmbedding(model_name=EMBED_MODEL_NAME)
+        cache_dir = os.environ.get("FASTEMBED_CACHE_DIR")
+        _model = TextEmbedding(model_name=EMBED_MODEL_NAME, cache_dir=cache_dir)
     return _model
 
 

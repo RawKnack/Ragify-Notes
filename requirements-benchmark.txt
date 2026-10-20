@@ -1,0 +1,5 @@
+# Optional dependencies for RAG benchmarking and experiment tracking
+-r requirements.txt
+ragas
+mlflow
+datasets

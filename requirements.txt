@@ -29,10 +29,5 @@ fastapi
 uvicorn[standard]
 python-multipart
 
-# Benchmarking & Experiment Tracking
-ragas
-mlflow
-datasets
-
 # Validation (optional)
 jsonschema
