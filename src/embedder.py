@@ -1,3 +1,4 @@
+from langchain_core.embeddings import Embeddings
 from config.settings import EMBED_MODEL_NAME
 
 _embeddings = None
@@ -21,7 +22,16 @@ def get_embeddings():
     return _embeddings
 
 
-class _LazyEmbeddings:
+class _LazyEmbeddings(Embeddings):
+    def embed_documents(self, texts: list[str]) -> list[list[float]]:
+        return get_embeddings().embed_documents(texts)
+
+    def embed_query(self, text: str) -> list[float]:
+        return get_embeddings().embed_query(text)
+
+    def __call__(self, text: str) -> list[float]:
+        return self.embed_query(text)
+
     def __getattr__(self, name):
         return getattr(get_embeddings(), name)
 
