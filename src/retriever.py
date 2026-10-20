@@ -140,29 +140,38 @@ def query(
         print(f"\n[Retriever] Query: {question}")
         print(f"   Mode: {mode}")
 
-    if mode == "naive":
-        faiss_retriever = _get_faiss_retriever(top_k=top_k)
-        docs = faiss_retriever.invoke(question)
-        retrieved = _docs_to_chunks(docs, source_tag="dense")
-
-    elif mode in ("hybrid", "hybrid_rerank"):
-        fetch_k = top_k * 3 if mode == "hybrid_rerank" else top_k
-        faiss_retriever = _get_faiss_retriever(top_k=fetch_k)
-        bm25_retriever = _get_bm25_retriever(top_k=fetch_k)
-
-        if bm25_retriever:
-            ensemble = EnsembleRetriever(
-                retrievers=[faiss_retriever, bm25_retriever],
-                weights=[alpha, 1 - alpha],
-            )
-            docs = ensemble.invoke(question)
-        else:
+    try:
+        if mode == "naive":
+            faiss_retriever = _get_faiss_retriever(top_k=top_k)
             docs = faiss_retriever.invoke(question)
+            retrieved = _docs_to_chunks(docs, source_tag="dense")
 
-        retrieved = _docs_to_chunks(docs, source_tag="both")
+        elif mode in ("hybrid", "hybrid_rerank"):
+            fetch_k = top_k * 3 if mode == "hybrid_rerank" else top_k
+            faiss_retriever = _get_faiss_retriever(top_k=fetch_k)
+            bm25_retriever = _get_bm25_retriever(top_k=fetch_k)
 
-    else:
-        raise ValueError(f"Unknown retrieval mode: {mode}")
+            if bm25_retriever:
+                ensemble = EnsembleRetriever(
+                    retrievers=[faiss_retriever, bm25_retriever],
+                    weights=[alpha, 1 - alpha],
+                )
+                docs = ensemble.invoke(question)
+            else:
+                docs = faiss_retriever.invoke(question)
+
+            retrieved = _docs_to_chunks(docs, source_tag="both")
+
+        else:
+            raise ValueError(f"Unknown retrieval mode: {mode}")
+
+    except FileNotFoundError:
+        return {
+            "question": question,
+            "answer": "No notes have been indexed yet. Please upload a PDF to create the knowledge base.",
+            "sources": [],
+            "mode": mode,
+        }
 
     if not retrieved:
         return {

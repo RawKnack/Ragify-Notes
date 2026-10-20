@@ -9,7 +9,6 @@ __pycache__
 .env
 .env.*
 Data
-faiss_index
 mlruns
 .git
 .vscode

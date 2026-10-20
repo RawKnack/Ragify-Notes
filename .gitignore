@@ -28,7 +28,6 @@ Thumbs.db
 
 # Vector stores
 qdrant_storage/
-faiss_index/
 
 # MLflow
 mlruns/
