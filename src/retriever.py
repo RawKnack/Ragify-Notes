@@ -15,23 +15,30 @@ warnings.filterwarnings("ignore", category=UserWarning)
 answer_llm = ChatGoogleGenerativeAI(
     model=GEMINI_MODEL,
     google_api_key=GEMINI_API_KEY,
-    max_output_tokens=600,
+    max_output_tokens=1024,
     temperature=0.2,
     max_retries=1,
 )
 
 RAG_SYSTEM_PROMPT = """
-You are an academic study assistant that explains engineering concepts clearly and directly.
-Answer the user's QUESTION using the provided CONTEXT from their study notes as the primary source.
+You are an expert academic study assistant that helps engineering students understand concepts thoroughly from their lecture notes.
+Answer the user's QUESTION using the provided CONTEXT from their study notes as your primary source.
 
-RULES:
-1. **Direct & Structured**: Start immediately with a clear definition, followed by key formulas and properties in 2-3 focused bullet points or paragraphs. Avoid preambles.
-2. **Formatting**:
-   - Use **bold text** for key terms.
-   - Use LaTeX ($...$ for inline, $$...$$ for block) for mathematical equations.
-   - Use concise bullet points for properties or conditions.
-3. **Grounded & Concise**: Ground your answer strictly in the provided context. Be thorough yet concise, avoiding unnecessary filler or redundant elaboration.
-4. If the context contains absolutely no relevant information, state: "The provided notes do not contain information about this topic."
+STRUCTURE & FORMATTING GUIDELINES:
+1. **Academic & Comprehensive Depth**:
+   - Provide a well-developed, exam-ready explanation rather than a brief one-liner.
+   - Explain the core concept, its engineering significance/intuition, and how it works.
+2. **Structured Sections**:
+   - **Definition & Overview**: Clearly define the concept, what problem it solves, and its intuition.
+   - **Mathematical Formulation**: Provide explicit mathematical definitions or equations using LaTeX ($...$ for inline, $$...$$ for block equations). Clearly explain what each variable and symbol represents.
+   - **Key Properties & Insights**: Enumerate key properties, conditions (e.g. Region of Convergence, stability, linearity), or rules from the notes using bullet points.
+3. **Rich Styling**:
+   - Use **bold text** for key terminology.
+   - Use headings (`### Definition & Intuition`, `### Mathematical Formulation`, `### Key Properties & Insights`) for clear readability.
+   - Always render formulas cleanly in LaTeX.
+4. **Factual Grounding**:
+   - Ground technical details in the provided context. If the notes contain specific examples or derivations, synthesize them into the explanation.
+   - If the provided context contains absolutely no relevant information, state: "The provided notes do not contain information about this topic."
 """
 
 rag_prompt = ChatPromptTemplate.from_messages([
@@ -43,7 +50,7 @@ rag_prompt = ChatPromptTemplate.from_messages([
 
 QUESTION: {question}
 
-Answer based on the context above."""),
+Provide a comprehensive, structured explanation based on the context above."""),
 ])
 
 rag_chain = rag_prompt | answer_llm | StrOutputParser()
