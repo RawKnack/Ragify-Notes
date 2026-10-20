@@ -4,6 +4,8 @@
 
 ### *Transform Handwritten Engineering Notes into an AI-Powered, Grounded Knowledge Base*
 
+> 🚀 **Live Demo:** [https://ragify-notes.onrender.com/](https://ragify-notes.onrender.com/)
+
 [![Python](https://img.shields.io/badge/Python-3.11-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![LangChain](https://img.shields.io/badge/LangChain-Integrated-1C3C3C?style=for-the-badge&logo=langchain&logoColor=white)](https://www.langchain.com/)
@@ -11,10 +13,11 @@
 [![FlashRank](https://img.shields.io/badge/FlashRank-ONNX%20Reranker-FF6F00?style=for-the-badge&logo=lightning&logoColor=white)](https://github.com/PrithivirajDamodaran/FlashRank)
 [![Gemini](https://img.shields.io/badge/Google%20Gemini-3.8%20Flash-4285F4?style=for-the-badge&logo=google&logoColor=white)](https://aistudio.google.com/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
-[![Render](https://img.shields.io/badge/Render-Deployed-46E3B7?style=for-the-badge&logo=render&logoColor=white)](https://render.com/)
+[![Render](https://img.shields.io/badge/Render-Live%20Demo-46E3B7?style=for-the-badge&logo=render&logoColor=white)](https://ragify-notes.onrender.com/)
 
 <br />
 
+🌐 **[Live Demo](https://ragify-notes.onrender.com/)** •
 [Features](#-key-features) •
 [Architecture](#-pipeline-architecture) •
 [Retrieval Modes](#-retrieval-modes) •
@@ -300,6 +303,7 @@ RagifyNotes is fully optimized for **Render's Free Web Service** tier ($0/month,
    * **`GEMINI_API_KEY`**: Your Google AI Studio API key.
    * **`PORT`**: `5000` (Render binds to `PORT` automatically).
 6. Click **Deploy Web Service**. Once built, the application is live and accessible worldwide.
+   * **Live Deployment URL**: [https://ragify-notes.onrender.com/](https://ragify-notes.onrender.com/)
 
 ---
 
@@ -340,9 +344,3 @@ You can also deploy to Hugging Face Spaces:
 
 * GitHub: [@RawKnack](https://github.com/RawKnack)
 * Repository: [Ragify-Notes](https://github.com/RawKnack/Ragify-Notes)
-
----
-
-## 📄 License
-
-This project is licensed under the [MIT License](LICENSE).
