@@ -15,7 +15,7 @@ warnings.filterwarnings("ignore", category=UserWarning)
 answer_llm = ChatGoogleGenerativeAI(
     model=GEMINI_MODEL,
     google_api_key=GEMINI_API_KEY,
-    max_output_tokens=1024,
+    max_output_tokens=4096,
     temperature=0.2,
     max_retries=1,
 )
@@ -126,14 +126,31 @@ def _generate_answer(question: str, context: str) -> str:
         return rag_chain.invoke({"question": question, "context": context})
     except Exception as e:
         err_msg = str(e)
+        fallback_models = ["gemini-3.5-flash", "gemini-flash-lite-latest"]
+        for fb_model in fallback_models:
+            if fb_model == GEMINI_MODEL:
+                continue
+            try:
+                fb_llm = ChatGoogleGenerativeAI(
+                    model=fb_model,
+                    google_api_key=GEMINI_API_KEY,
+                    max_output_tokens=4096,
+                    temperature=0.2,
+                    max_retries=1,
+                )
+                fb_chain = rag_prompt | fb_llm | StrOutputParser()
+                return fb_chain.invoke({"question": question, "context": context})
+            except Exception:
+                continue
+
         if "429" in err_msg or "RESOURCE_EXHAUSTED" in err_msg:
             return (
                 "⚠️ **Gemini API Daily Quota Limit Reached**\n\n"
-                "The current API key has exhausted its daily free-tier requests on `gemini-3.8-flash` (capped at 20 requests/day for this key).\n\n"
+                "The current API key has exhausted its daily free-tier requests on the Gemini API.\n\n"
                 "**To restore instant answering:**\n"
                 "1. Go to [Google AI Studio](https://aistudio.google.com/apikey) (Free tier).\n"
                 "2. Click **Create API Key**.\n"
-                "3. Paste your new key (`AIzaSy...`) into your `.env` file (and in Render Environment Variables).\n\n"
+                "3. Paste your new key into your `.env` file (and in Render Environment Variables).\n\n"
                 "*(Your matching lecture chunks from notes have still been retrieved and ranked below!)*"
             )
         return f"LLM error: {e}"
