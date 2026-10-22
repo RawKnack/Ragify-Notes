@@ -1,33 +1,35 @@
 # PDF processing
-PyMuPDF
+PyMuPDF>=1.23.0
 
 # Image handling
-pillow
+pillow>=10.0.0
 
-# LangChain core + integrations
-langchain
-langchain-community
-langchain-google-genai
+# LangChain core + integrations (pinned to avoid backtracking)
+langchain-core>=0.3.0,<0.4.0
+langchain>=0.3.0,<0.4.0
+langchain-community>=0.3.0,<0.4.0
+langchain-google-genai>=2.0.0
+langsmith>=0.1.100
 
 # Embeddings (ONNX Runtime, ultra-lightweight, 0 PyTorch)
-fastembed
+fastembed>=0.3.0
 
 # Cross-encoder re-ranking (ONNX Runtime, ultra-lightweight)
-flashrank
+flashrank>=0.2.0
 
 # Vector database
-faiss-cpu
+faiss-cpu>=1.7.4
 
 # Sparse retrieval (used by LangChain BM25Retriever)
-rank-bm25
+rank-bm25>=0.2.2
 
 # Config
-python-dotenv
+python-dotenv>=1.0.0
 
 # Web application
-fastapi
-uvicorn[standard]
-python-multipart
+fastapi>=0.110.0
+uvicorn[standard]>=0.29.0
+python-multipart>=0.0.9
 
 # Validation (optional)
-jsonschema
+jsonschema>=4.20.0

@@ -4,7 +4,10 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.documents import Document
 from langchain_community.retrievers import BM25Retriever
-from langchain_classic.retrievers import EnsembleRetriever
+try:
+    from langchain.retrievers import EnsembleRetriever
+except ImportError:
+    from langchain_community.retrievers import EnsembleRetriever
 
 from src.vector_store import load_store, get_all_chunks
 from src.reranker import rerank
@@ -161,9 +164,16 @@ def _generate_answer(question: str, context: str) -> str:
                 "⚠️ **Gemini Service Temporarily Busy (503)**\n\n"
                 "Google's free-tier servers are temporarily experiencing high demand. Please re-run your search in a few seconds."
             )
-        return f"LLM error: {e}"
+try:
+    from langsmith import traceable
+except ImportError:
+    def traceable(*args, **kwargs):
+        def decorator(f):
+            return f
+        return decorator
 
 
+@traceable(name="RagifyNotes Query Pipeline", run_type="chain")
 def query(
     question: str,
     top_k: int = 5,

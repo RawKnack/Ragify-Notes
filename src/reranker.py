@@ -3,6 +3,14 @@ import os
 import tempfile
 from config.settings import RERANK_MODEL_NAME
 
+try:
+    from langsmith import traceable
+except ImportError:
+    def traceable(*args, **kwargs):
+        def decorator(f):
+            return f
+        return decorator
+
 _ranker = None
 
 
@@ -15,6 +23,7 @@ def get_reranker():
     return _ranker
 
 
+@traceable(name="FlashRank Reranker", run_type="retriever")
 def rerank(query: str, chunks: list[dict], top_k: int = 5) -> list[dict]:
     if not chunks:
         return []
