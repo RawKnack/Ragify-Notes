@@ -125,24 +125,6 @@ def _generate_answer(question: str, context: str) -> str:
         return rag_chain.invoke({"question": question, "context": context})
     except Exception as e:
         err_msg = str(e)
-        fallback_models = ["gemini-3.5-flash-lite", "gemini-3.5-flash", "gemini-flash-lite-latest"]
-        for fb_model in fallback_models:
-            if fb_model == GEMINI_MODEL:
-                continue
-            try:
-                fb_llm = ChatGoogleGenerativeAI(
-                    model=fb_model,
-                    google_api_key=GEMINI_API_KEY,
-                    max_output_tokens=2048,
-                    temperature=0.2,
-                    timeout=30,
-                    max_retries=1,
-                )
-                fb_chain = rag_prompt | fb_llm | StrOutputParser()
-                return fb_chain.invoke({"question": question, "context": context})
-            except Exception:
-                continue
-
         if "429" in err_msg or "RESOURCE_EXHAUSTED" in err_msg:
             return (
                 "⚠️ **Gemini API Daily Quota Limit Reached**\n\n"
@@ -158,6 +140,7 @@ def _generate_answer(question: str, context: str) -> str:
                 "⚠️ **Gemini Service Temporarily Busy (503)**\n\n"
                 "Google's free-tier servers are temporarily experiencing high demand. Please re-run your search in a few seconds."
             )
+        return f"⚠️ Unable to generate answer: {err_msg}"
 try:
     from langsmith import traceable
 except ImportError:
