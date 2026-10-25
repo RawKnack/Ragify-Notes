@@ -182,9 +182,9 @@ def main():
     args = parser.parse_args()
 
     if args.query:
-        print(f"\n🔍 Querying: '{args.query}' (mode={args.mode})...\n")
+        print(f"\n[Query] Querying: '{args.query}' (mode={args.mode})...\n")
         results = query(
-            args.query, mode=args.mode, top_k=args.top_k, section_filter=args.section
+            args.query, mode=args.mode, top_k=args.top_k, filter_section=args.section
         )
         pretty_print(results)
     else:

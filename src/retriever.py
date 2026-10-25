@@ -16,8 +16,8 @@ answer_llm = ChatGoogleGenerativeAI(
     google_api_key=GEMINI_API_KEY,
     max_output_tokens=2048,
     temperature=0.2,
-    timeout=45,
-    max_retries=1,
+    timeout=60,
+    max_retries=2,
 )
 
 
@@ -135,10 +135,10 @@ def _generate_answer(question: str, context: str) -> str:
                 "3. Paste your new key into your `.env` file (and in Render Environment Variables).\n\n"
                 "*(Your matching lecture chunks from notes have still been retrieved and ranked below!)*"
             )
-        if "503" in err_msg or "UNAVAILABLE" in err_msg:
+        if "503" in err_msg or "UNAVAILABLE" in err_msg or "504" in err_msg or "DEADLINE_EXCEEDED" in err_msg:
             return (
-                "⚠️ **Gemini Service Temporarily Busy (503)**\n\n"
-                "Google's free-tier servers are temporarily experiencing high demand. Please re-run your search in a few seconds."
+                "⚠️ **Gemini Service Temporarily Busy (503/504)**\n\n"
+                "Google's free-tier servers are temporarily experiencing high demand or latency. Please re-run your search in a few seconds."
             )
         return f"⚠️ Unable to generate answer: {err_msg}"
 try:
