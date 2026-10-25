@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
 
 
 EMBED_MODEL_NAME = os.getenv("EMBED_MODEL_NAME", "sentence-transformers/all-MiniLM-L6-v2")
@@ -20,6 +20,7 @@ CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "100"))
 RRF_K = int(os.getenv("RRF_K", "60"))
 DEFAULT_ALPHA = float(os.getenv("DEFAULT_ALPHA", "0.6"))
 DEFAULT_TOP_K = int(os.getenv("DEFAULT_TOP_K", "5"))
+DEFAULT_MODE = os.getenv("DEFAULT_MODE", "hybrid")
 
 OUTPUT_JSON = os.getenv("OUTPUT_JSON", "Data/output_json/output.json")
 CHUNKS_JSON = os.getenv("CHUNKS_JSON", "Data/output_json/chunks.json")

@@ -24,7 +24,7 @@ services:
     ports:
       - "5001:5000"
     volumes:
-      - mlflow_data:/mlflow/data
+      - ./mlflow.db:/mlflow/data/mlflow.db
       - ./mlruns:/mlflow/mlruns
     command: >
       mlflow server
@@ -33,7 +33,4 @@ services:
       --backend-store-uri sqlite:////mlflow/data/mlflow.db
       --default-artifact-root /mlflow/mlruns
     restart: unless-stopped
-
-volumes:
-  mlflow_data:
 

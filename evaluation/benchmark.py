@@ -14,6 +14,8 @@ Usage:
     python -m evaluation.benchmark
     python -m evaluation.benchmark --modes naive hybrid hybrid_rerank
     python -m evaluation.benchmark --test-file evaluation/test_questions.json
+    python -m evaluation.benchmark --limit 2          # run only 2 questions, then stop
+    python -m evaluation.benchmark --limit 2 --modes hybrid_rerank  # combine flags
 
 View results:
     mlflow ui --backend-store-uri sqlite:///mlflow.db --port 5001
@@ -224,6 +226,7 @@ def pd_isna(val) -> bool:
 def benchmark(
     test_file: str = "evaluation/test_questions.json",
     modes: list[str] = None,
+    limit: int = None,
 ):
     """
     Run RAGAS benchmark across specified retrieval modes with incremental caching.
@@ -234,6 +237,15 @@ def benchmark(
     print(f"\n📂 Loading test questions from {test_file}...")
     questions = load_test_questions(test_file)
     print(f"   Found {len(questions)} test questions")
+
+    if limit is not None:
+        # Only pick questions not yet cached for each mode, up to `limit`
+        cache_check = load_eval_cache()
+        uncached = [q for q in questions if not all(
+            f"{m}::{q['question']}" in cache_check for m in modes
+        )]
+        questions = uncached[:limit]
+        print(f"   ⚡ --limit {limit}: running {len(questions)} uncached question(s) this session")
 
     cache = load_eval_cache()
 
@@ -326,6 +338,8 @@ if __name__ == "__main__":
     parser.add_argument("--modes", nargs="+", default=["naive", "hybrid", "hybrid_rerank"],
                         choices=["naive", "hybrid", "hybrid_rerank"],
                         help="Retrieval modes to benchmark")
+    parser.add_argument("--limit", type=int, default=None,
+                        help="Max number of uncached questions to evaluate per run (for rate-limit management)")
     args = parser.parse_args()
 
-    benchmark(test_file=args.test_file, modes=args.modes)
+    benchmark(test_file=args.test_file, modes=args.modes, limit=args.limit)

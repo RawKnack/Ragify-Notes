@@ -28,7 +28,7 @@ from src.chunker import chunk_all_pages
 from src.embedder import embed_chunks
 from src.vector_store import create_and_store, get_collection_info
 from src.retriever import query, pretty_print
-from config.settings import OUTPUT_JSON, CHUNKS_JSON, INPUT_PDF_DIR
+from config.settings import OUTPUT_JSON, CHUNKS_JSON, INPUT_PDF_DIR, DEFAULT_MODE
 
 PAGE_LIMIT = None  # Set a number for testing e.g. 5, or None for all pages
 
@@ -172,9 +172,9 @@ def main():
     parser.add_argument(
         "--mode",
         type=str,
-        default="hybrid_rerank",
+        default=DEFAULT_MODE,
         choices=["naive", "hybrid", "hybrid_rerank"],
-        help="Retrieval mode (default: hybrid_rerank)",
+        help=f"Retrieval mode (default: {DEFAULT_MODE})",
     )
     parser.add_argument("--section", type=str, default=None, help="Filter search by section tag")
     parser.add_argument("--top-k", type=int, default=5, help="Number of results to return")

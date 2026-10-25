@@ -4,14 +4,10 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.documents import Document
 from langchain_community.retrievers import BM25Retriever
-try:
-    from langchain.retrievers import EnsembleRetriever
-except ImportError:
-    from langchain_community.retrievers import EnsembleRetriever
 
 from src.vector_store import load_store, get_all_chunks
 from src.reranker import rerank
-from config.settings import GEMINI_API_KEY, GEMINI_MODEL, DEFAULT_ALPHA
+from config.settings import GEMINI_API_KEY, GEMINI_MODEL, DEFAULT_ALPHA, DEFAULT_MODE
 
 warnings.filterwarnings("ignore", category=UserWarning)
 
@@ -29,21 +25,19 @@ RAG_SYSTEM_PROMPT = """
 You are an expert academic study assistant that helps engineering students understand concepts thoroughly from their lecture notes.
 Answer the user's QUESTION using the provided CONTEXT from their study notes as your primary source.
 
-STRUCTURE & FORMATTING GUIDELINES:
-1. **Academic & Comprehensive Depth**:
-   - Provide a well-developed, exam-ready explanation rather than a brief one-liner.
-   - Explain the core concept, its engineering significance/intuition, and how it works.
-2. **Structured Sections**:
-   - **Definition & Overview**: Clearly define the concept, what problem it solves, and its intuition.
-   - **Mathematical Formulation**: Provide explicit mathematical definitions or equations using LaTeX ($...$ for inline, $$...$$ for block equations). Clearly explain what each variable and symbol represents.
-   - **Key Properties & Insights**: Enumerate key properties, conditions (e.g. Region of Convergence, stability, linearity), or rules from the notes using bullet points.
-3. **Rich Styling**:
-   - Use **bold text** for key terminology.
-   - Use headings (`### Definition & Intuition`, `### Mathematical Formulation`, `### Key Properties & Insights`) for clear readability.
-   - Always render formulas cleanly in LaTeX.
-4. **Factual Grounding**:
-   - Ground technical details in the provided context. If the notes contain specific examples or derivations, synthesize them into the explanation.
-   - If the provided context contains absolutely no relevant information, state: "The provided notes do not contain information about this topic."
+STRUCTURE & STRICT ACCURACY GUIDELINES:
+1. **Strict Factual Grounding**:
+   - Rely strictly and exclusively on the information, definitions, and equations explicitly stated in the CONTEXT.
+   - Do NOT assume, extrapolate, speculate, or introduce external concepts, history, or theories from outside the notes.
+   - Every factual statement you make must be directly verifiable from the provided context.
+2. **Mathematical Formulation**:
+   - If equations, derivations, or variables are present in the context, format them cleanly using LaTeX ($...$ for inline, $$...$$ for block equations).
+   - If mathematical formulas for this concept are NOT mentioned in the notes, do NOT invent or import outside equations.
+3. **Structured & Clear Organization**:
+   - Organize the answer into clear, readable sections using markdown headings (e.g., `### Definition & Overview`, `### Mathematical Formulation` (only when in context), `### Key Properties & Insights`).
+   - Use **bold text** for key terminology and bullet points for enumerating properties, conditions, or rules.
+4. **Context Absence**:
+   - If the provided context contains absolutely no relevant information to answer the question, state: "The provided notes do not contain information about this topic."
 """
 
 rag_prompt = ChatPromptTemplate.from_messages([
@@ -55,7 +49,7 @@ rag_prompt = ChatPromptTemplate.from_messages([
 
 QUESTION: {question}
 
-Provide a comprehensive, structured explanation based on the context above."""),
+Provide a structured, accurate explanation based STRICTLY on the context above. Do not include external facts or unmentioned formulas."""),
 ])
 
 rag_chain = rag_prompt | answer_llm | StrOutputParser()
@@ -131,7 +125,7 @@ def _generate_answer(question: str, context: str) -> str:
         return rag_chain.invoke({"question": question, "context": context})
     except Exception as e:
         err_msg = str(e)
-        fallback_models = ["gemini-2.5-flash-lite", "gemini-flash-lite-latest", "gemini-3.5-flash"]
+        fallback_models = ["gemini-3.5-flash-lite", "gemini-3.5-flash", "gemini-flash-lite-latest"]
         for fb_model in fallback_models:
             if fb_model == GEMINI_MODEL:
                 continue
@@ -180,7 +174,7 @@ def query(
     filter_confidence: str = None,
     filter_section: str = None,
     alpha: float = None,
-    mode: str = "hybrid_rerank",
+    mode: str = DEFAULT_MODE,
     verbose: bool = True,
 ) -> dict:
     if alpha is None:
@@ -202,11 +196,25 @@ def query(
             bm25_retriever = _get_bm25_retriever(top_k=fetch_k)
 
             if bm25_retriever:
-                ensemble = EnsembleRetriever(
-                    retrievers=[faiss_retriever, bm25_retriever],
-                    weights=[alpha, 1 - alpha],
-                )
-                docs = ensemble.invoke(question)
+                # Inline weighted fusion (replaces EnsembleRetriever removed in LangChain 1.4+)
+                faiss_docs = faiss_retriever.invoke(question)
+                bm25_docs = bm25_retriever.invoke(question)
+                # Weighted interleave: score = alpha * (1/faiss_rank) + (1-alpha) * (1/bm25_rank)
+                seen, fused = set(), []
+                scores = {}
+                for rank, doc in enumerate(faiss_docs, 1):
+                    key = doc.page_content
+                    scores[key] = scores.get(key, 0) + alpha * (1.0 / rank)
+                    if key not in seen:
+                        seen.add(key)
+                        fused.append(doc)
+                for rank, doc in enumerate(bm25_docs, 1):
+                    key = doc.page_content
+                    scores[key] = scores.get(key, 0) + (1 - alpha) * (1.0 / rank)
+                    if key not in seen:
+                        seen.add(key)
+                        fused.append(doc)
+                docs = sorted(fused, key=lambda d: scores.get(d.page_content, 0), reverse=True)
             else:
                 docs = faiss_retriever.invoke(question)
 

@@ -23,6 +23,7 @@ from pydantic import BaseModel
 import uvicorn
 
 from src.retriever import query, refresh_bm25_index
+from config.settings import DEFAULT_MODE
 from src.vector_store import get_collection_info
 from config.settings import INPUT_PDF_DIR
 
@@ -47,7 +48,7 @@ class QueryRequest(BaseModel):
     question: str
     top_k: int = 5
     alpha: float = 0.6
-    mode: str = "hybrid_rerank"  # "naive", "hybrid", or "hybrid_rerank"
+    mode: str = DEFAULT_MODE  # "naive", "hybrid", or "hybrid_rerank"
 
 
 @app.get("/", response_class=HTMLResponse)
